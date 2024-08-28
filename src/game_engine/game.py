@@ -18,7 +18,8 @@ class Game:
         self.players = [PlayerState(f"Player {i+1}", self) for i in range(num_players)]
         self.current_player_turn = 0
         self.current_phase = Phase.ACTION
-        
+        self.game_over = False
+
         # Start game
         self.start_game()
     
@@ -38,7 +39,18 @@ class Game:
         self.current_phase = Phase((self.current_phase + 1) % len(Phase))
 
     def next_player(self):
+        # Before moving to next player, check if the game is over (no provinces, or at least 3 empty supply piles)
+        if self.supply_piles[CARD_MAP["Province"]] <= 0 or len([card for card, count in self.supply_piles.items() if count == 0]) >= 3:
+            self.game_over = True
+            return
+
         self.current_player_turn = (self.current_player_turn + 1) % len(self.players)
 
     def current_player(self):
         return self.players[self.current_player_turn]
+    
+    def winner(self):
+        if self.game_over:
+            # Find the player with the most VPs
+            return max(self.players, key=lambda player: player.victory_points())
+        return None
