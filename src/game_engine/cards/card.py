@@ -44,11 +44,3 @@ class Card:
 
     def __repr__(self):
         return self.name
-
-
-def make_card(name, cost, type, effect, worth=Const(0), can_react=None, reaction=None):
-    return Card(name=name, type=type, cost=cost, victory_points=worth, effect=None)
-
-
-def make_victory(name, cost, worth, type=CardType.VICTORY):
-    return Card(name=name, type=type, cost=cost, victory_points=worth, effect=None)

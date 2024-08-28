@@ -18,6 +18,12 @@ class Game:
         self.players = [PlayerState(f"Player {i+1}") for i in range(num_players)]
         self.current_player_turn = 0
         self.current_phase = Phase.ACTION
+        
+        # Start game
+        self.start_game()
+    
+    def get_other_player(self):
+        return self.players[(self.current_player_turn + 1) % len(self.players)]
     
     def start_game(self):
         # Randomly select player to go first
