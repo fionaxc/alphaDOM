@@ -1,5 +1,4 @@
 import random
-from enum import Enum
 from game_engine.cards.card_instances import CARD_MAP, SUPPLY_CARD_LIMITS
 from .player import PlayerState
 from .phase import Phase
@@ -21,7 +20,19 @@ class Game:
     
     def get_observation_state(self):
         # Get the observation state for the current player
-        return self.current_player().get_observation_state()
+        observation_state = {
+            **self.current_player().get_player_observation_state(),
+            'game_state': {
+                'current_phase': self.current_phase.value,
+                'supply_piles': self.supply_piles,
+                'card_costs': {card: CARD_MAP[card].cost for card in self.supply_piles.keys()},
+                'game_over': self.game_over,
+            }
+        }
+        return observation_state
+    
+    def get_valid_actions(self):
+        return self.current_player().get_valid_actions()
     
     def get_other_player(self):
         return self.players[(self.current_player_turn + 1) % len(self.players)]
@@ -35,12 +46,20 @@ class Game:
             # Remove 7 coppers and 3 estates from supply
             self.supply_piles["Copper"] -= 7
             self.supply_piles["Estate"] -= 3
-            
+
             player.discard_pile = [CARD_MAP["Copper"]] * 7 + [CARD_MAP["Estate"]] * 3
             player.cleanup_cards()
-
+    
     def next_phase(self):
-        self.current_phase = Phase((self.current_phase + 1) % len(Phase))
+        # Log the current phase before changing it
+        print(f"Transitioning from phase: {self.current_phase}")
+
+        # Update the current phase to the next phase in the enum
+        phases = list(Phase)
+        current_index = phases.index(self.current_phase)
+        self.current_phase = phases[(current_index + 1) % len(phases)]
+                # Log the new phase after changing it
+        print(f"New phase: {self.current_phase}")
 
     def next_player(self):
         # Before moving to next player, check if the game is over (no provinces, or at least 3 empty supply piles)

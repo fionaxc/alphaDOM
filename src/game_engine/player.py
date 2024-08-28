@@ -1,6 +1,8 @@
 import random
 from .phase import Phase
 from .utils import cards_to_dict
+from .action import Action, ActionType
+from game_engine.cards.card_instances import CARD_MAP
 
 class PlayerState:
     def __init__(self, name, game):
@@ -18,7 +20,7 @@ class PlayerState:
         self.played_cards = []
         self.discard_pile = []
     
-    def get_observation_state(self):
+    def get_player_observation_state(self):
         # Get the current player's state
         current_player_state = {
             'actions': self.actions,
@@ -34,24 +36,33 @@ class PlayerState:
         # Get the opponent's state
         opponent = self.game.get_other_player()
         opponent_state = {
-            # I should only know the count of each card in his entire deck and the discard pile
+            # I should only know the count of each card in his entire deck
             'deck_count': cards_to_dict(opponent.all_cards()),
-            'discard_pile_count': cards_to_dict(opponent.discard_pile),
             # TODO: Figure out if we want to include # of cards in hand or draw pile
-        }
-
-        # Get the game state
-        game_state = {
-            'current_phase': self.game.current_phase.value,
-            'supply_piles': self.game.supply_piles,
-            'game_over': self.game.game_over,
+            # TODO: Eventually, add information about some of the known cards in the discard pile
         }
 
         return {
+            'current_player_name': self.name,
             'current_player_state': current_player_state,
             'opponent_state': opponent_state,
-            'game_state': game_state
         }
+    
+    def get_valid_actions(self):
+        # Initialize list of valid actions
+        valid_actions = []
+
+        # If in action phase, add playable action cards and end action phase action
+        if self.game.current_phase == Phase.ACTION:
+            valid_actions.extend([Action(self, ActionType.PLAY, card) for card in self.hand if card.is_action()])
+            valid_actions.append(Action(self, ActionType.END_ACTION))
+
+        # If in buy phase, add buyable cards and end buy phase action
+        elif self.game.current_phase == Phase.BUY:
+            valid_actions.extend([Action(self, ActionType.BUY, CARD_MAP[card]) for card in self.game.supply_piles if self.coins >= CARD_MAP[card].cost and self.buys > 0])
+            valid_actions.append(Action(self, ActionType.END_BUY))
+
+        return valid_actions
 
     def all_cards(self):
         return self.draw_pile + self.hand + self.played_cards + self.discard_pile
@@ -60,9 +71,9 @@ class PlayerState:
         return sum(card.victory_points for card in self.all_cards())
 
     def play_remaining_treasures(self):
-        # Filter out treasure cards from hand and play them
-        for card in filter(lambda card: card.is_treasure(), self.hand):
-            self.handle.play(card.name)
+        # Play all treasure cards in hand
+        for card in [card for card in self.hand if card.is_treasure()]:
+            self.play_card(card)
     
     def play_card(self, card):
         # Check if the card is in hand  
@@ -74,7 +85,12 @@ class PlayerState:
             self.played_cards.append(card)
 
             # Play the card
+            self.actions -= 1
             card.play(self, self.game)
+
+            # If we're in the action phase and no actions left, end action phase
+            if self.game.current_phase == Phase.ACTION and self.actions <= 0:
+                self.end_action_phase()
     
     def draw_card(self):
         # Check if draw_pile is empty
@@ -102,6 +118,11 @@ class PlayerState:
                 self.buys -= 1
                 self.game.supply_piles[card.name] -= 1
                 self.discard_pile.append(card)
+
+                # Move to cleanup phase if no more buys
+                if self.buys <= 0:
+                    print("CALLING THIS")
+                    self.end_buy_phase()
     
     def cleanup_cards(self):
         self.actions = 1
@@ -122,13 +143,19 @@ class PlayerState:
     
     def end_action_phase(self):
         if self.game.current_phase == Phase.ACTION:
+            # Play remaining treasures and reset actions
+            self.play_remaining_treasures()
+            self.actions = 0
+            print(f"Ending action phase for {self.name}")
             self.game.next_phase()
     
     def end_buy_phase(self):
         if self.game.current_phase == Phase.BUY:
             # Move to cleanup phase, clean up cards, and then go to next player with reset turn state
+            print(f"Ending buy phase for {self.name}")
             self.game.next_phase()
             self.cleanup_cards()
+            print(f"Cleaning up cards for {self.name}")
             self.game.next_phase()
             self.game.next_player()
 
