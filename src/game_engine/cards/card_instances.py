@@ -1,5 +1,5 @@
 from .card import Card, CardType
-from effects import CompositeEffect, DrawCardsEffect, AddMoneyEffect, AddActionsEffect, AddBuysEffect, ConditionalEffect, TrashCardInHandEffect, AddCurseEffect
+from ..effects import CompositeEffect, DrawCardsEffect, AddMoneyEffect, AddActionsEffect, AddBuysEffect, ConditionalEffect, TrashCardInHandEffect, AddCurseEffect
 
 def has_copper(player, game):
     # Check if the player has a Copper card in hand
@@ -119,24 +119,3 @@ BASIC_KINGDOM_CARDS = {
         effect=CompositeEffect(effects=[DrawCardsEffect(num_cards=2), AddCurseEffect(num_curses=1)])
     ),
 }
-
-# Define the supply card limits for each card
-SUPPLY_CARD_LIMITS = {
-    "Copper": 60,
-    "Silver": 40,
-    "Gold": 30,
-    "Estate": 14,
-    "Duchy": 8,
-    "Province": 8,
-    "Curse": 10,
-    "Chapel": 10,
-    "Village": 10,
-    "Smithy": 10,
-    "Moneylender": 10,
-    "Festival": 10,
-    "Laboratory": 10,
-    "Market": 10,
-    "Witch": 10,
-}
-
-CARD_MAP = {**DEFAULT_CARDS, **BASIC_KINGDOM_CARDS}

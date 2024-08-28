@@ -1,6 +1,6 @@
 import random
 from enum import Enum
-from cards.card_instances import CARD_MAP, SUPPLY_CARD_LIMITS
+from game_engine.constants import CARD_MAP, SUPPLY_CARD_LIMITS
 from player import PlayerState
 
 DEFAULT_SUPPLY = ["Copper", "Silver", "Gold", "Estate", "Duchy", "Province", "Curse"]
@@ -22,6 +22,10 @@ class Game:
 
         # Start game
         self.start_game()
+    
+    def get_observation_state(self):
+        # Get the observation state for the current player
+        return self.current_player().get_observation_state()
     
     def get_other_player(self):
         return self.players[(self.current_player_turn + 1) % len(self.players)]

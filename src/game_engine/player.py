@@ -1,6 +1,7 @@
 import random
 from game import Phase
 from utils import cards_to_dict
+
 class PlayerState:
     def __init__(self, name, game):
         self.name = name

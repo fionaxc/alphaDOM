@@ -1,4 +1,4 @@
-from cards.card_instances import CARD_MAP
+from game_engine.constants import CARD_MAP
 
 class Effect:
     def __init__(self, **kwargs):
