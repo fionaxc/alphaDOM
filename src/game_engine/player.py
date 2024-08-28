@@ -121,7 +121,6 @@ class PlayerState:
 
                 # Move to cleanup phase if no more buys
                 if self.buys <= 0:
-                    print("CALLING THIS")
                     self.end_buy_phase()
     
     def cleanup_cards(self):
@@ -143,19 +142,16 @@ class PlayerState:
     
     def end_action_phase(self):
         if self.game.current_phase == Phase.ACTION:
+            self.game.next_phase()
             # Play remaining treasures and reset actions
             self.play_remaining_treasures()
             self.actions = 0
-            print(f"Ending action phase for {self.name}")
-            self.game.next_phase()
     
     def end_buy_phase(self):
         if self.game.current_phase == Phase.BUY:
             # Move to cleanup phase, clean up cards, and then go to next player with reset turn state
-            print(f"Ending buy phase for {self.name}")
             self.game.next_phase()
             self.cleanup_cards()
-            print(f"Cleaning up cards for {self.name}")
             self.game.next_phase()
             self.game.next_player()
 

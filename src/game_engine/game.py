@@ -51,15 +51,10 @@ class Game:
             player.cleanup_cards()
     
     def next_phase(self):
-        # Log the current phase before changing it
-        print(f"Transitioning from phase: {self.current_phase}")
-
         # Update the current phase to the next phase in the enum
         phases = list(Phase)
         current_index = phases.index(self.current_phase)
         self.current_phase = phases[(current_index + 1) % len(phases)]
-                # Log the new phase after changing it
-        print(f"New phase: {self.current_phase}")
 
     def next_player(self):
         # Before moving to next player, check if the game is over (no provinces, or at least 3 empty supply piles)
