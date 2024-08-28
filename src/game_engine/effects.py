@@ -58,7 +58,7 @@ class ConditionalEffect(Effect):
         self.condition = condition
         self.effect = effect
 
-    def invoke(self, player_handle, game):
+    def apply(self, player, game):
         # Check the condition and apply the effect if true
-        if self.condition(player_handle, game):
-            self.effect.invoke(player_handle, game)
+        if self.condition(player, game):
+            self.effect.apply(player, game)

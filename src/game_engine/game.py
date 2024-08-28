@@ -15,7 +15,7 @@ class Game:
     def __init__(self, kingdom_cards = SIMPLE_SETUP, num_players = 2):
         # Game setup
         self.supply_piles = {CARD_MAP[card]: SUPPLY_CARD_LIMITS[card] for card in DEFAULT_SUPPLY + kingdom_cards}
-        self.players = [PlayerState(f"Player {i+1}") for i in range(num_players)]
+        self.players = [PlayerState(f"Player {i+1}", self) for i in range(num_players)]
         self.current_player_turn = 0
         self.current_phase = Phase.ACTION
         
@@ -33,9 +33,6 @@ class Game:
         for player in self.players:
             player.discard_pile = [CARD_MAP["Copper"]] * 7 + [CARD_MAP["Estate"]] * 3
             player.cleanup_cards()
-
-    def buy_card(self, card_name):
-        pass
 
     def next_phase(self):
         self.current_phase = Phase((self.current_phase + 1) % len(Phase))

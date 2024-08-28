@@ -27,9 +27,9 @@ class Card:
     def is_treasure(self):
         return self.is_type(CardType.TREASURE)
 
-#     def play(self, player_handle, game):
-#         self.effect.invoke(player_handle, game, None)
-# 
+    def play(self, player, game):
+        self.effect.apply(player, game)
+
 #     def handle_card_played(self, player_handle, game, card_name):
 #         self.effect.handle_card_played(player_handle, game, card_name)
 # 
