@@ -1,20 +1,16 @@
 import random
 from enum import Enum
-from game_engine.constants import CARD_MAP, SUPPLY_CARD_LIMITS
-from player import PlayerState
+from game_engine.cards.card_instances import CARD_MAP, SUPPLY_CARD_LIMITS
+from .player import PlayerState
+from .phase import Phase
 
 DEFAULT_SUPPLY = ["Copper", "Silver", "Gold", "Estate", "Duchy", "Province", "Curse"]
 SIMPLE_SETUP = ["Chapel", "Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
 
-class Phase(Enum):
-    ACTION = "action"
-    BUY = "buy"
-    CLEANUP = "cleanup"
-
 class Game:
     def __init__(self, kingdom_cards = SIMPLE_SETUP, num_players = 2):
         # Game setup
-        self.supply_piles = {CARD_MAP[card]: SUPPLY_CARD_LIMITS[card] for card in DEFAULT_SUPPLY + kingdom_cards}
+        self.supply_piles = {card: SUPPLY_CARD_LIMITS[card] for card in DEFAULT_SUPPLY + kingdom_cards}
         self.players = [PlayerState(f"Player {i+1}", self) for i in range(num_players)]
         self.current_player_turn = 0
         self.current_phase = Phase.ACTION
@@ -36,6 +32,10 @@ class Game:
 
         # Initialize each player with 7 coppers, 3 estates and then draw 5 cards
         for player in self.players:
+            # Remove 7 coppers and 3 estates from supply
+            self.supply_piles["Copper"] -= 7
+            self.supply_piles["Estate"] -= 3
+            
             player.discard_pile = [CARD_MAP["Copper"]] * 7 + [CARD_MAP["Estate"]] * 3
             player.cleanup_cards()
 
@@ -44,7 +44,7 @@ class Game:
 
     def next_player(self):
         # Before moving to next player, check if the game is over (no provinces, or at least 3 empty supply piles)
-        if self.supply_piles[CARD_MAP["Province"]] <= 0 or len([card for card, count in self.supply_piles.items() if count == 0]) >= 3:
+        if self.supply_piles["Province"] <= 0 or len([card for card, count in self.supply_piles.items() if count == 0]) >= 3:
             self.game_over = True
             return
 

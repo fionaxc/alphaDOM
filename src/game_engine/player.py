@@ -1,6 +1,6 @@
 import random
-from game import Phase
-from utils import cards_to_dict
+from .phase import Phase
+from .utils import cards_to_dict
 
 class PlayerState:
     def __init__(self, name, game):
@@ -37,12 +37,13 @@ class PlayerState:
             # I should only know the count of each card in his entire deck and the discard pile
             'deck_count': cards_to_dict(opponent.all_cards()),
             'discard_pile_count': cards_to_dict(opponent.discard_pile),
+            # TODO: Figure out if we want to include # of cards in hand or draw pile
         }
 
         # Get the game state
         game_state = {
             'current_phase': self.game.current_phase.value,
-            'supply_piles': {card.name: count for card, count in self.game.supply_piles.items()},
+            'supply_piles': self.game.supply_piles,
             'game_over': self.game.game_over,
         }
 
@@ -93,13 +94,13 @@ class PlayerState:
             return
 
         # Check if the card is in supply
-        if card in self.game.supply_piles and self.game.supply_piles[card] > 0:
+        if card.name in self.game.supply_piles and self.game.supply_piles[card.name] > 0:
             # Check if the player has enough coins and buys to buy the card
             if self.coins >= card.cost and self.buys > 0:
                 # Buy the card
                 self.coins -= card.cost
                 self.buys -= 1
-                self.game.supply_piles[card] -= 1
+                self.game.supply_piles[card.name] -= 1
                 self.discard_pile.append(card)
     
     def cleanup_cards(self):

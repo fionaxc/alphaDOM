@@ -32,24 +32,28 @@ DEFAULT_CARDS = {
         type=CardType.VICTORY,
         cost=2,
         victory_points=1,
+        effect=None
     ),
     "Duchy": Card(
         name="Duchy",
         type=CardType.VICTORY,
         cost=5,
         victory_points=3,
+        effect=None
     ),
     "Province": Card(
         name="Province",
         type=CardType.VICTORY,
         cost=8,
         victory_points=6,
+        effect=None
     ),
     "Curse": Card(
         name="Curse",
         type=CardType.CURSE,
         cost=0,
         victory_points=-1,
+        effect=None
     ),
 }
 
@@ -80,12 +84,12 @@ BASIC_KINGDOM_CARDS = {
         type=CardType.ACTION,
         cost=4,
         victory_points=0,
-        effect=CompositeEffect([
+        effect=CompositeEffect(effects=[
             ConditionalEffect(
                 condition=has_copper,
-                effect=CompositeEffect([
-                    TrashCardInHandEffect(DEFAULT_CARDS["Copper"]),
-                    AddMoneyEffect(3)
+                effect=CompositeEffect(effects=[
+                    TrashCardInHandEffect(card=DEFAULT_CARDS["Copper"]),
+                    AddMoneyEffect(amount=3)
                 ])
             )
         ])
@@ -119,3 +123,25 @@ BASIC_KINGDOM_CARDS = {
         effect=CompositeEffect(effects=[DrawCardsEffect(num_cards=2), AddCurseEffect(num_curses=1)])
     ),
 }
+
+# Define the supply card limits for each card
+SUPPLY_CARD_LIMITS = {
+    "Copper": 60,
+    "Silver": 40,
+    "Gold": 30,
+    "Estate": 14,
+    "Duchy": 8,
+    "Province": 8,
+    "Curse": 10,
+    "Chapel": 10,
+    "Village": 10,
+    "Smithy": 10,
+    "Moneylender": 10,
+    "Festival": 10,
+    "Laboratory": 10,
+    "Market": 10,
+    "Witch": 10,
+}
+
+# Combine default and kingdom cards into a single map
+CARD_MAP = {**DEFAULT_CARDS, **BASIC_KINGDOM_CARDS}

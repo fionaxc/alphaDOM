@@ -1,5 +1,3 @@
-from game_engine.constants import CARD_MAP
-
 class Effect:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -30,6 +28,9 @@ class AddMoneyEffect(Effect):
 
 class AddCurseEffect(Effect):
     def apply(self, player, game):
+        # Import CARD_MAP here to avoid circular dependency
+        from game_engine.cards.card_instances import CARD_MAP
+
         # Add num_curses curse cards to other player's deck
         game.get_other_player().discard_pile.extend([CARD_MAP["Curse"]] * self.num_curses)
 
