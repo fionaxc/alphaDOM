@@ -2,11 +2,11 @@
 
 AlphaDOM is a project by Fiona Cai and Kevin Jiang focused on building a Deep Reinforcement Learning AI to play Dominion! Dominion is a deck-building card game where players compete to accumulate the most victory points by purchasing cards from a shared supply and strategically building their personal decks to optimize their actions, buys, and overall strategy.
 
-### Agents
+## Agents
 
 - **BabyDOM**: Our first RL agent that uses Proximal Policy Optimization with Clipped Surrogate Objective (PPO-Clip) and self-play to learn and play a basic Kingdom (Chapel, Festival, Village, Smithy, Market, Moneylender, Witch, Lab)
 
-### Repository Structure
+## Repository Structure
 
 The repository is generally organized as follows:
 
@@ -24,7 +24,7 @@ The repository is generally organized as follows:
   - `utils.py`: Utility functions
 - `tests/`: Contains unit tests for the game engine
 
-### Running Unit Tests
+## Running Unit Tests
 
 To ensure the game engine is functioning correctly, we have included a suite of unit tests:
 
@@ -32,17 +32,38 @@ To ensure the game engine is functioning correctly, we have included a suite of 
 python3 -m unittest discover -s tests
 ```
 
-### Running the Training Process
+## Running the Training Process
 
 To run the main training process, use the following command from the root directory of the project:
 
 ```bash
-python3 main.py
+python3 main.py [arguments]
 ```
 
-This will start the training process using the parameters defined in the `main.py` file. The script will:
+### Command-line Arguments
 
-1. Initialize the game engine and vectorizer
-2. Set up training parameters
-3. Run the PPO training algorithm
-4. Save the trained agents and output files
+The script accepts the following command-line arguments:
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--num_episodes` | int | 100 | Number of episodes to train |
+| `--batch_size` | int | 32 | Batch size for training |
+| `--update_epochs` | int | 10 | Number of epochs for each update |
+| `--hidden_size` | int | 64 | Hidden size of the neural network |
+| `--run_id` | str | "default_run" | Unique identifier for this run |
+
+Example:
+
+```bash
+python3 main.py --num_episodes 200 --batch_size 64 --run_id my_custom_run
+```
+
+This will start the training process using the specified parameters. The script will:
+
+1. Parse command-line arguments
+2. Initialize the game engine and vectorizer
+3. Create an output directory for the run
+4. Run the PPO training algorithm
+5. Save the trained agents and output files
+6. Save the training parameters to a CSV file
+
