@@ -34,8 +34,8 @@ class TestGameEngine(unittest.TestCase):
         print("\nInitial Valid Actions:")
         pprint(game.get_valid_actions())  # Pretty-print the valid actions
     
-    def test_five_randomized_actions(self):
-        self.print_title("Five Randomized Actions")
+    def run_n_randomized_actions(self, n):
+        self.print_title(f"{n} Randomized Actions")
 
         # Initialize a new game
         game = Game()
@@ -46,7 +46,13 @@ class TestGameEngine(unittest.TestCase):
         print("\nInitial Valid Actions:")
         pprint(game.get_valid_actions())
 
-        for i in range(1, 6):
+        for i in range(1, n+1):
+            if game.game_over:
+                print(f"Game over after {i-1} actions on turn {game.turn_number}")
+                pprint(self.simplified_observation_state(game.get_observation_state()))
+                print(f"Winner: {game.winner().name}, Player 1 VP: {game.players[0].victory_points()}, Player 2 VP: {game.players[1].victory_points()}")
+                break
+
             # Choose and apply a random action from the valid actions
             action = random.choice(game.get_valid_actions())
             action.apply()
@@ -56,6 +62,15 @@ class TestGameEngine(unittest.TestCase):
             pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
             print(f"\nValid Actions after {action}:")
             pprint(game.get_valid_actions())  # Pretty-print the valid actions
+    
+    def test_five_randomized_actions(self):
+        self.run_n_randomized_actions(5)
+    
+    def test_fifty_randomized_actions(self):
+        self.run_n_randomized_actions(50)
+    
+    def test_five_hundred_randomized_actions(self):
+        self.run_n_randomized_actions(500)
 
 if __name__ == '__main__':
     unittest.main()
