@@ -133,7 +133,7 @@ def ppo_train(
         update_epochs: int = 4
 ) -> Tuple[PPOAgent, PPOAgent]:
     
-    obs_dim = vectorizer.observation_dim
+    obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
     player1 = PPOAgent(obs_dim, action_dim)
     player2 = PPOAgent(obs_dim, action_dim)
@@ -154,20 +154,20 @@ def ppo_train(
             current_player = game_engine.current_player_turn
             agent = player1 if current_player == 0 else player2
             
-            game_state = game_engine.get_observation_state()
-            obs = vectorizer.vectorize(game_state)
-            valid_actions = game_engine.get_valid_actions()
+            obs = vectorizer.vectorize_observation(game_engine)
+            action_mask = vectorizer.get_action_mask(game_engine)
             
-            action, log_prob = agent.get_action(obs, valid_actions, vectorizer)
+            action, log_prob = agent.get_action(obs, action_mask)
             value = agent.get_value(obs)
             
-            action.apply()
+            action_obj = vectorizer.devectorize_action(action, game_engine.current_player())
+            game_engine.apply_action(action_obj)
             
             done = game_engine.game_over
             reward = game_engine.players[current_player].victory_points() if done else 0
             
             observations[current_player].append(obs)
-            actions[current_player].append(vectorizer.action_to_index(action))
+            actions[current_player].append(action)
             log_probs[current_player].append(log_prob)
             rewards[current_player].append(reward)
             values[current_player].append(value)
@@ -184,8 +184,7 @@ def ppo_train(
                     values[current_player],
                     dones[current_player],
                     next_value=agent.get_value(obs),
-                    epochs=update_epochs,
-                    vectorizer=vectorizer
+                    epochs=update_epochs
                 )
                 observations[current_player] = []
                 actions[current_player] = []
@@ -206,8 +205,7 @@ def ppo_train(
                     values[current_player],
                     dones[current_player],
                     next_value=0,
-                    epochs=update_epochs,
-                    vectorizer=vectorizer
+                    epochs=update_epochs
                 )
 
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")

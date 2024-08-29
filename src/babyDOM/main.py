@@ -15,7 +15,7 @@ def __main__():
     card_types = list(CARD_MAP.keys())
 
     #Initialize the vectorizer
-    vectorizer = DominionVectorizer(card_types)
+    vectorizer = DominionVectorizer(game_engine.all_card_names)
 
     trained_agent1, trained_agent2 = ppo_train(game_engine, vectorizer)
 

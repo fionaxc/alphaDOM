@@ -17,6 +17,7 @@ class Game:
             num_players (int): Number of players in the game.
         """
         # Game setup
+        self.all_card_names = DEFAULT_SUPPLY + kingdom_cards
         # Supply piles maps "card names" to their maximum count
         self.supply_piles = {card: SUPPLY_CARD_LIMITS[card] for card in DEFAULT_SUPPLY + kingdom_cards}
         self.players = [PlayerState(f"Player {i+1}", self) for i in range(num_players)]
