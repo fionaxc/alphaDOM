@@ -51,6 +51,19 @@ class PPOAgent:
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
                  entropy_coef: float = 0.01):
+        """
+        Initialize the PPOAgent that uses a combined loss function for actor and critic.
+
+        Args:
+            obs_dim (int): Dimension of the observation space.
+            action_dim (int): Dimension of the action space.
+            hidden_size (int): Size of the hidden layers in the neural network.
+            lr (float): Learning rate for the optimizer.
+            gamma (float): Discount factor for future rewards.
+            epsilon (float): Clipping parameter for the PPO update.
+            value_coef (float): Coefficient for the value loss in the combined loss function.
+            entropy_coef (float): Coefficient for the entropy loss in the combined loss function.
+        """
         self.actor = PPOActor(obs_dim, action_dim, hidden_size)
         self.critic = PPOCritic(obs_dim, hidden_size)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
