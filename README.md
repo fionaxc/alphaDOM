@@ -10,7 +10,7 @@ AlphaDOM is a project by Fiona Cai and Kevin Jiang focused on building a Deep Re
 
 The repository is generally organized as follows:
 
-- `src/`: Contains the main source code for the game engine.
+- `src/`: Main source code for RL agents
   - `babyDOM/`: Our first RL agent that uses PPO and self-play
   - `game_engine/`: Core game engine for running a game of Dominion
     - `cards/`: Definitions and instances of all cards used in the game.
