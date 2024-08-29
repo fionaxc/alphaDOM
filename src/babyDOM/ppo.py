@@ -137,7 +137,7 @@ class PPOAgent:
 def ppo_train(
         game_engine: Game,
         vectorizer: DominionVectorizer,
-        num_episodes: int = 1000,
+        num_episodes: int = 100,
         batch_size: int = 32,
         update_epochs: int = 4,
         hidden_size: int = 64
@@ -169,15 +169,14 @@ def ppo_train(
             
             action, log_prob = agent.get_action(obs, game_engine, vectorizer)
             value = agent.get_value(obs)
-            
-            action_obj = vectorizer.devectorize_action(action, game_engine.current_player())
-            game_engine.apply_action(action_obj)
-            
+
+            action.apply()
+
             done = game_engine.game_over
             reward = game_engine.players[current_player].victory_points() if done else 0
-            
+
             observations[current_player].append(obs)
-            actions[current_player].append(action)
+            actions[current_player].append(vectorizer.vectorize_action(action))
             log_probs[current_player].append(log_prob)
             rewards[current_player].append(reward)
             values[current_player].append(value)
@@ -194,7 +193,8 @@ def ppo_train(
                     values[current_player],
                     dones[current_player],
                     next_value=agent.get_value(obs),
-                    epochs=update_epochs
+                    epochs=update_epochs,
+                    vectorizer=vectorizer
                 )
                 observations[current_player] = []
                 actions[current_player] = []
@@ -215,7 +215,8 @@ def ppo_train(
                     values[current_player],
                     dones[current_player],
                     next_value=0,
-                    epochs=update_epochs
+                    epochs=update_epochs,
+                    vectorizer=vectorizer
                 )
 
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")

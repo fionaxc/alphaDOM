@@ -67,7 +67,7 @@ class DominionVectorizer:
             return Action(player, ActionType.END_ACTION)
         elif action_index == self.action_space_size - 1:
             return Action(player, ActionType.END_BUY)
-        else:
+        else: # PLAY or BUY
             card_index = action_index // 2
             action_type = ActionType.PLAY if action_index % 2 == 0 else ActionType.BUY
             card_name = self.card_types[card_index]
