@@ -20,6 +20,8 @@ The repository is generally organized as follows:
     - `phase.py`: Represents phases in the game
     - `player.py`: Player state and actions.
   - `vectorization/`: Converts game engine states to vectors for RL agents to use
+  - `main.py`: Main script to run the training process
+  - `utils.py`: Utility functions
 - `tests/`: Contains unit tests for the game engine
 
 ### Running Unit Tests
@@ -29,3 +31,18 @@ To ensure the game engine is functioning correctly, we have included a suite of 
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+### Running the Training Process
+
+To run the main training process, use the following command from the root directory of the project:
+
+```bash
+python3 main.py
+```
+
+This will start the training process using the parameters defined in the `main.py` file. The script will:
+
+1. Initialize the game engine and vectorizer
+2. Set up training parameters
+3. Run the PPO training algorithm
+4. Save the trained agents and output files
