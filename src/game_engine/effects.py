@@ -31,8 +31,11 @@ class AddCurseEffect(Effect):
         # Import CARD_MAP here to avoid circular dependency
         from game_engine.cards.card_instances import CARD_MAP
 
-        # Add num_curses curse cards to other player's deck
-        game.get_other_player().discard_pile.extend([CARD_MAP["Curse"]] * self.num_curses)
+        # Add minimum of num_curses or remaining curses in supply to other player's deck
+        if game.supply_piles["Curse"] > 0:
+            num_curses_to_add = min(self.num_curses, game.supply_piles["Curse"])
+            game.get_other_player().discard_pile.extend([CARD_MAP["Curse"]] * num_curses_to_add)
+            game.supply_piles["Curse"] -= num_curses_to_add  # Update the supply pile
 
 class TrashCardInHandEffect(Effect):
     def apply(self, player, game):

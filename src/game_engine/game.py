@@ -4,7 +4,8 @@ from .player import PlayerState
 from .phase import Phase
 
 DEFAULT_SUPPLY = ["Copper", "Silver", "Gold", "Estate", "Duchy", "Province", "Curse"]
-SIMPLE_SETUP = ["Chapel", "Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
+SIMPLE_SETUP = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
+# SIMPLE_CHAPEL_SETUP = ["Chapel", "Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
 
 class Game:
     def __init__(self, kingdom_cards = SIMPLE_SETUP, num_players = 2):
@@ -14,6 +15,7 @@ class Game:
         self.current_player_turn = 0
         self.current_phase = Phase.ACTION
         self.game_over = False
+        self.turn_number = 1
 
         # Start game
         self.start_game()
@@ -63,6 +65,7 @@ class Game:
             return
 
         self.current_player_turn = (self.current_player_turn + 1) % len(self.players)
+        self.turn_number += 1
 
     def current_player(self):
         return self.players[self.current_player_turn]

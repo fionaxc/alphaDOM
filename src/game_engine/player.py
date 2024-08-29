@@ -59,7 +59,7 @@ class PlayerState:
 
         # If in buy phase, add buyable cards and end buy phase action
         elif self.game.current_phase == Phase.BUY:
-            valid_actions.extend([Action(self, ActionType.BUY, CARD_MAP[card]) for card in self.game.supply_piles if self.coins >= CARD_MAP[card].cost and self.buys > 0])
+            valid_actions.extend([Action(self, ActionType.BUY, CARD_MAP[card]) for card in self.game.supply_piles if self.coins >= CARD_MAP[card].cost and self.buys > 0 and self.game.supply_piles[card] > 0])
             valid_actions.append(Action(self, ActionType.END_BUY))
 
         return valid_actions
