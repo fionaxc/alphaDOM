@@ -95,3 +95,18 @@ class Game:
             # Find the player with the most VPs
             return max(self.players, key=lambda player: player.victory_points())
         return None
+    
+    def get_game_state_string(self):
+        state = f"Turn {self.turn_number}, Phase: {self.current_phase.value}\n"
+        state += f"Current Player: {self.current_player().name}\n"
+        state += "Supply Piles:\n"
+        for card, count in self.supply_piles.items():
+            state += f"  {card}: {count}\n"
+        state += "\nPlayers:\n"
+        for player in self.players:
+            state += f"  {player.name}:\n"
+            state += f"    Actions: {player.actions}, Buys: {player.buys}, Coins: {player.coins}\n"
+            state += f"    Hand: {', '.join(str(card) for card in player.hand)}\n"
+            state += f"    Deck: {len(player.draw_pile)} cards\n"
+            state += f"    Discard: {len(player.discard_pile)} cards\n"
+        return state

@@ -7,6 +7,9 @@ from typing import List, Tuple, Dict
 from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action
+import pandas as pd
+import os
+import csv
 
 class PPOActor(nn.Module):
     def __init__(self, input_size: int, output_size: int, hidden_size: int):
@@ -134,19 +137,39 @@ class PPOAgent:
         return returns
 
 
+def record_game_history(game_engine, vectorizer, episode, turn_counter, current_player, action, reward, cumulative_reward):
+    observation_state = game_engine.get_observation_state()
+    valid_actions = game_engine.get_valid_actions()
+    
+    return {
+        'Episode': episode + 1,
+        'Turn': turn_counter,
+        'Player': current_player + 1,
+        'Action': str(action),
+        'Reward': reward,
+        'Cumulative_Reward': cumulative_reward,
+        'Game_State': observation_state,
+        'Valid_Actions': [str(a) for a in valid_actions]
+    }
+
 def ppo_train(
         game_engine: Game,
         vectorizer: DominionVectorizer,
-        num_episodes: int = 100,
-        batch_size: int = 32,
-        update_epochs: int = 4,
-        hidden_size: int = 64
+        run_id: str,
+        output_dir: str,
+        num_episodes: int,
+        batch_size: int,
+        update_epochs: int,
+        hidden_size: int
 ) -> Tuple[PPOAgent, PPOAgent]:
     
     obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
     player1 = PPOAgent(obs_dim, action_dim, hidden_size)
     player2 = PPOAgent(obs_dim, action_dim, hidden_size)
+    
+    # Create a directory for storing output files
+    os.makedirs(output_dir, exist_ok=True)
 
     for episode in range(num_episodes):
         game_engine = Game()  # Reset the game state
@@ -159,6 +182,13 @@ def ppo_train(
         rewards = [[], []]
         values = [[], []]
         dones = [[], []]
+
+        # Initialize game history
+        game_history = []
+
+        # Initialize variables for tracking game state
+        turn_counter = 0
+        cumulative_rewards = [0, 0]
 
         while not done:
             current_player = game_engine.current_player_turn
@@ -175,6 +205,15 @@ def ppo_train(
             done = game_engine.game_over
             reward = game_engine.players[current_player].victory_points() if done else 0
 
+            # Log the game state after the action and reward calculation
+            game_history.append({
+                'turn': turn_counter,
+                'player': game_engine.current_player().name,
+                'action': str(action),
+                'state': game_engine.get_game_state_string(),
+                'reward': reward
+            })
+
             observations[current_player].append(obs)
             actions[current_player].append(vectorizer.vectorize_action(action))
             log_probs[current_player].append(log_prob)
@@ -183,6 +222,13 @@ def ppo_train(
             dones[current_player].append(done)
             
             episode_rewards[current_player] += reward
+            cumulative_rewards[current_player] += reward
+
+            # Update the reward for the last action if the game is over
+            if done:
+                game_history[-1]['reward'] = reward
+
+            turn_counter += 1
 
             if len(observations[current_player]) >= batch_size:
                 agent.update(
@@ -220,5 +266,15 @@ def ppo_train(
                 )
 
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
+        
+        # Save game history to CSV
+        with open(os.path.join(output_dir, f"game_history_{episode+1}.csv"), "w", newline='') as f:
+            fieldnames = ['turn', 'player', 'action', 'state', 'reward']
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(game_history)
+
+        # Reset game history for the next episode
+        game_history = []
 
     return player1, player2
