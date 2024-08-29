@@ -5,6 +5,7 @@ def has_copper(player, game):
     # Check if the player has a Copper card in hand
     return any(card == DEFAULT_CARDS["Copper"] for card in player.hand)
 
+# Constants mapping card names to Card objects
 DEFAULT_CARDS = {
     "Copper": Card(
         name="Copper",

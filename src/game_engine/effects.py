@@ -1,3 +1,5 @@
+# This module defines various effects that can be applied to players and the game state.
+
 class Effect:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)

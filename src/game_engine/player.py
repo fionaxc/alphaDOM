@@ -6,10 +6,17 @@ from game_engine.cards.card_instances import CARD_MAP
 
 class PlayerState:
     def __init__(self, name, game):
+        """
+        Initialize the state of a player.
+
+        Args:
+            name (str): The name of the player.
+            game (Game): The game instance the player is part of.
+        """
         self.name = name
         self.game = game
 
-        # Turn state
+        # Turn state - number of actions, buys, and coins they have
         self.actions = 0
         self.buys = 0
         self.coins = 0

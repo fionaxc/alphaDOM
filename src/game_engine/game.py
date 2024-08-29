@@ -8,8 +8,16 @@ SIMPLE_SETUP = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "M
 # SIMPLE_CHAPEL_SETUP = ["Chapel", "Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
 
 class Game:
-    def __init__(self, kingdom_cards = SIMPLE_SETUP, num_players = 2):
+    def __init__(self, kingdom_cards=SIMPLE_SETUP, num_players=2):
+        """
+        Initialize the game with the given kingdom cards and number of players.
+
+        Args:
+            kingdom_cards (list): List of kingdom card names to include in the game.
+            num_players (int): Number of players in the game.
+        """
         # Game setup
+        # Supply piles maps "card names" to their maximum count
         self.supply_piles = {card: SUPPLY_CARD_LIMITS[card] for card in DEFAULT_SUPPLY + kingdom_cards}
         self.players = [PlayerState(f"Player {i+1}", self) for i in range(num_players)]
         self.current_player_turn = 0
@@ -21,7 +29,12 @@ class Game:
         self.start_game()
     
     def get_observation_state(self):
-        # Get the observation state for the current player
+        """
+        Get the observation state for the current player.
+
+        Returns:
+            dict: A dictionary containing the current player's observation state and the game state.
+        """
         observation_state = {
             **self.current_player().get_player_observation_state(),
             'game_state': {
@@ -34,6 +47,12 @@ class Game:
         return observation_state
     
     def get_valid_actions(self):
+        """
+        Get the valid actions for the current player.
+
+        Returns:
+            list: A list of valid actions that the current player can perform.
+        """
         return self.current_player().get_valid_actions()
     
     def get_other_player(self):

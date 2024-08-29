@@ -1,4 +1,5 @@
 from enum import Flag, auto
+from ..effects import Effect
 
 class CardType(Flag):
     TREASURE = auto()
@@ -8,10 +9,20 @@ class CardType(Flag):
     ATTACK = auto()
 
 class Card:
-    def __init__(self, name, type, cost, victory_points, effect):
+    def __init__(self, name, type, cost, victory_points, effect: Effect):
+        """
+        Initialize a card (e.g. Village) with its attributes.
+
+        Args:
+            name (str): The name of the card.
+            type (CardType): The type of the card (e.g., TREASURE, CURSE, VICTORY, ACTION, ATTACK).
+            cost (int): The cost to buy the card.
+            victory_points (int): The victory points the card provides.
+            effect (Effect): The effect(s) the card has when played (e.g. +2 actions, +1 buy, etc.), defined in effects.py
+        """
         self.name = name
         self.type = type
-        self.cost = cost
+        self.cost = cost 
         self.victory_points = victory_points
         self.effect = effect
 
@@ -29,12 +40,6 @@ class Card:
 
     def play(self, player, game):
         self.effect.apply(player, game)
-
-#     def handle_card_played(self, player_handle, game, card_name):
-#         self.effect.handle_card_played(player_handle, game, card_name)
-# 
-#     def handle_cleaned_up(self):
-#         self.effect.handle_cleaned_up()
 
     def __eq__(self, other):
         return self.name == other.name

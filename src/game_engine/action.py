@@ -1,4 +1,5 @@
 from enum import Enum
+from .cards.card import Card
 
 class ActionType(Enum):
     PLAY = "play"
@@ -7,7 +8,15 @@ class ActionType(Enum):
     END_BUY = "end_buy"
 
 class Action:
-    def __init__(self, player, action_type: ActionType, card=None):
+    def __init__(self, player, action_type: ActionType, card: Card = None):
+        """
+        Initialize an action that a player can perform. E.g. Play a Village card, buy a Silver card, etc.
+
+        Args:
+            player (Player): The player performing the action.
+            action_type (ActionType): The type of action being performed (e.g., PLAY, BUY, END_ACTION, END_BUY).
+            card (Card, optional): The card involved in the action, if any. Defaults to None.
+        """
         self.action_type = action_type
         self.card = card
         self.player = player
