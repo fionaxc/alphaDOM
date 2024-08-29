@@ -167,7 +167,7 @@ def ppo_train(
             obs = vectorizer.vectorize_observation(game_engine)
             action_mask = vectorizer.get_action_mask(game_engine)
             
-            action, log_prob = agent.get_action(obs, action_mask, vectorizer)
+            action, log_prob = agent.get_action(obs, game_engine, vectorizer)
             value = agent.get_value(obs)
             
             action_obj = vectorizer.devectorize_action(action, game_engine.current_player())

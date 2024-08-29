@@ -75,10 +75,11 @@ class DominionVectorizer:
 
     def get_action_mask(self, game: Game) -> np.ndarray:
         valid_actions = game.get_valid_actions()
+
         mask = np.zeros(self.action_space_size, dtype=np.int8)
         
         for action in valid_actions:
             mask[self.vectorize_action(action)] = 1
-        
+    
         return mask
     
