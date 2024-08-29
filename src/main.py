@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Any, Dict, List
-from ppo import PPOAgent, PPOActor, PPOCritic, ppo_train
+from babyDOM.ppo import PPOAgent, PPOActor, PPOCritic, ppo_train
 from game_engine.game import Game
 from game_engine.cards.card import CardType
 from game_engine.cards.card_instances import CARD_MAP

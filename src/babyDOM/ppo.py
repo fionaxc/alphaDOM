@@ -4,6 +4,8 @@ import torch.optim as optim
 from torch.distributions import Categorical
 import numpy as np
 from typing import List, Tuple, Dict
+from game_engine.game import Game
+from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action
 
 class PPOActor(nn.Module):
@@ -38,9 +40,16 @@ class PPOCritic(nn.Module):
 
 
 class PPOAgent:
-    def __init__(self, obs_dim: int, action_dim: int, lr: float = 3e-4, gamma: float = 0.99, epsilon: float = 0.2, value_coef: float = 0.5, entropy_coef: float = 0.01):
-        self.actor = PPOActor(obs_dim, action_dim)
-        self.critic = PPOCritic(obs_dim)
+    def __init__(self, obs_dim: int, 
+                 action_dim: int, 
+                 hidden_size: int, 
+                 lr: float = 3e-4, 
+                 gamma: float = 0.99, 
+                 epsilon: float = 0.2, 
+                 value_coef: float = 0.5, 
+                 entropy_coef: float = 0.01):
+        self.actor = PPOActor(obs_dim, action_dim, hidden_size)
+        self.critic = PPOCritic(obs_dim, hidden_size)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=lr)
         self.gamma = gamma
@@ -48,24 +57,24 @@ class PPOAgent:
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
 
-    def get_action(self, obs: np.ndarray, valid_actions: List[Action]) -> Tuple[Action, float]:
+    def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float]:
         obs = torch.FloatTensor(obs)
         logits = self.actor(obs)
 
-        # Create an action mask based on the valid actions
-        action_mask = torch.zeros(logits.size(), dtype = torch.bool)
-        valid_indices = [vectorizer.action_to_index(action) for action in valid_actions]
-        action_mask[valid_indices] = True
+        # Get the action mask directly from the vectorizer
+        action_mask = vectorizer.get_action_mask(game)
+        action_mask = torch.BoolTensor(action_mask)
 
         # Apply mask and create categorical distribution
-        maksed_logits = logits.masked_fill(~action_mask, -np.inf)
-        probs = torch.softmax(maksed_logits, dim = -1)
+        masked_logits = logits.masked_fill(~action_mask, -float('inf'))
+        probs = torch.softmax(masked_logits, dim=-1)
         m = Categorical(probs)
 
         action_index = m.sample()
-        selected_action = valid_actions[valid_indices.index(action_index.item())]
+        # Use devectorize_action instead of index_to_action
+        selected_action = vectorizer.devectorize_action(action_index.item(), game.current_player())
         return selected_action, m.log_prob(action_index).item()
-   
+
     def get_value(self, obs: np.ndarray) -> float:
         obs = torch.FloatTensor(obs)
         return self.critic(obs).item()
@@ -130,13 +139,14 @@ def ppo_train(
         vectorizer: DominionVectorizer,
         num_episodes: int = 1000,
         batch_size: int = 32,
-        update_epochs: int = 4
+        update_epochs: int = 4,
+        hidden_size: int = 64
 ) -> Tuple[PPOAgent, PPOAgent]:
     
     obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
-    player1 = PPOAgent(obs_dim, action_dim)
-    player2 = PPOAgent(obs_dim, action_dim)
+    player1 = PPOAgent(obs_dim, action_dim, hidden_size)
+    player2 = PPOAgent(obs_dim, action_dim, hidden_size)
 
     for episode in range(num_episodes):
         game_engine = Game()  # Reset the game state
@@ -157,7 +167,7 @@ def ppo_train(
             obs = vectorizer.vectorize_observation(game_engine)
             action_mask = vectorizer.get_action_mask(game_engine)
             
-            action, log_prob = agent.get_action(obs, action_mask)
+            action, log_prob = agent.get_action(obs, action_mask, vectorizer)
             value = agent.get_value(obs)
             
             action_obj = vectorizer.devectorize_action(action, game_engine.current_player())
