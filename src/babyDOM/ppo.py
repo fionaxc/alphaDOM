@@ -64,6 +64,7 @@ class PPOAgent:
             epsilon (float): Clipping parameter for the PPO update.
             value_coef (float): Coefficient for the value loss in the combined loss function.
             entropy_coef (float): Coefficient for the entropy loss in the combined loss function.
+            gae_lambda (float): Lambda parameter for the Generalized Advantage Estimation (GAE).
         """
         self.actor = PPOActor(obs_dim, action_dim, hidden_size)
         self.critic = PPOCritic(obs_dim, hidden_size)
@@ -76,6 +77,9 @@ class PPOAgent:
         self.gae_lambda = gae_lambda
 
     def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float]:
+        """
+        Get the action from the agent's policy. Returns the selected action and the log probability of the action (used for updating the policy).
+        """
         obs = torch.FloatTensor(obs)
         logits = self.actor(obs)
 
@@ -89,18 +93,22 @@ class PPOAgent:
         m = Categorical(probs)
 
         action_index = m.sample()
-        # Use devectorize_action instead of index_to_action
         selected_action = vectorizer.devectorize_action(action_index.item(), game.current_player())
         return selected_action, m.log_prob(action_index).item()
 
     def get_value(self, obs: np.ndarray) -> float:
+        """
+        Get the value from the critic.
+        """
         obs = torch.FloatTensor(obs)
         return self.critic(obs).item()
    
     def update(self, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
                epochs: int, vectorizer: DominionVectorizer):
-        
+        """
+        Update the agent's policy using the PPO-Clip algorithm with a combined loss function for actor and critic.
+        """
         observations = torch.FloatTensor(observations)
         actions = torch.LongTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
@@ -109,6 +117,7 @@ class PPOAgent:
         dones = torch.FloatTensor(dones)
 
         # Compute returns and advantages using GAE
+        # The returns are used as target for the critic and the advantages are used to update the actor
         returns, advantages = self.compute_gae(rewards, values, next_value, dones)
         
         # Normalize advantages
@@ -148,6 +157,7 @@ class PPOAgent:
                     dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         advantages = torch.zeros_like(rewards)
         last_gae = 0
+        # Compute a smoothed advantage estimate for each time step
         for t in reversed(range(len(rewards))):
             if t == len(rewards) - 1:
                 next_non_terminal = 1.0 - dones[t]
@@ -158,6 +168,8 @@ class PPOAgent:
             delta = rewards[t] + self.gamma * next_value * next_non_terminal - values[t]
             last_gae = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae
             advantages[t] = last_gae
+        
+        # Compute the returns as the sum of the advantages and the values (to be used as target for the critic)
         returns = advantages + values
         return returns, advantages
 
@@ -220,7 +232,6 @@ def ppo_train(
             agent = player1 if current_player == 0 else player2
             
             obs = vectorizer.vectorize_observation(game_engine)
-            action_mask = vectorizer.get_action_mask(game_engine)
             
             action, log_prob = agent.get_action(obs, game_engine, vectorizer)
             value = agent.get_value(obs)

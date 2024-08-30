@@ -12,7 +12,7 @@ class DominionVectorizer:
         The Vectorizer converts game states into vectors and vice versa for RL algorithms to use.
         """
         self.card_types = card_types
-        self.action_space_size = len(card_types) * 2 + 2  # Play card, buy card, end action, end buy
+        self.action_space_size = len(card_types) * 2 + 2  # For each card, there are 2 actions (PLAY and BUY) + 2 end actions (END_ACTION and END_BUY)
 
     def vectorize_observation(self, game: Game) -> np.ndarray:
         """
@@ -78,6 +78,9 @@ class DominionVectorizer:
         return vector
 
     def vectorize_action(self, action: Action) -> int:
+        """
+        Converts an action into an index in the action space.
+        """
         if action.action_type == ActionType.END_ACTION:
             return self.action_space_size - 2
         elif action.action_type == ActionType.END_BUY:
@@ -100,7 +103,7 @@ class DominionVectorizer:
 
     def get_action_mask(self, game: Game) -> np.ndarray:
         """
-        Returns a mask of valid actions for the current game state.
+        Returns a mask of valid actions for the current game state (1 for valid actions, 0 for invalid actions).
         """
         valid_actions = game.get_valid_actions()
 
