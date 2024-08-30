@@ -50,7 +50,8 @@ class PPOAgent:
                  gamma: float = 0.99, 
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
-                 entropy_coef: float = 0.01):
+                 entropy_coef: float = 0.01, 
+                 gae_lambda: float = 0.95):
         """
         Initialize the PPOAgent that uses a combined loss function for actor and critic.
 
@@ -72,6 +73,7 @@ class PPOAgent:
         self.epsilon = epsilon
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
+        self.gae_lambda = gae_lambda
 
     def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float]:
         obs = torch.FloatTensor(obs)
@@ -106,10 +108,11 @@ class PPOAgent:
         values = torch.FloatTensor(values)
         dones = torch.FloatTensor(dones)
 
-        # Compute returns and advantages
-        returns = self.compute_returns(rewards, dones, next_value)
-        advantages = returns - values
-
+        # Compute returns and advantages using GAE
+        returns, advantages = self.compute_gae(rewards, values, next_value, dones)
+        
+        # Normalize advantages
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         for _ in range(epochs):
             # Get new log probs and values
             new_logits = self.actor(observations)
@@ -141,13 +144,22 @@ class PPOAgent:
             self.actor_optimizer.step()
             self.critic_optimizer.step()
     
-    def compute_returns(self, rewards: torch.Tensor, dones: torch.Tensor, next_value: torch.Tensor) -> torch.Tensor:
-        returns = torch.zeros_like(rewards)
-        running_return = next_value
+    def compute_gae(self, rewards: torch.Tensor, values: torch.Tensor, next_value: torch.Tensor, 
+                    dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        advantages = torch.zeros_like(rewards)
+        last_gae = 0
         for t in reversed(range(len(rewards))):
-            running_return = rewards[t] + self.gamma * running_return * (1 - dones[t])
-            returns[t] = running_return
-        return returns
+            if t == len(rewards) - 1:
+                next_non_terminal = 1.0 - dones[t]
+                next_value = next_value
+            else:
+                next_non_terminal = 1.0 - dones[t + 1]
+                next_value = values[t + 1]
+            delta = rewards[t] + self.gamma * next_value * next_non_terminal - values[t]
+            last_gae = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae
+            advantages[t] = last_gae
+        returns = advantages + values
+        return returns, advantages
 
 
 def record_game_history(game_engine, vectorizer, episode, turn_counter, current_player, action, reward, cumulative_reward):

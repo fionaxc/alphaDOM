@@ -17,6 +17,7 @@ def parse_arguments():
 
 def __main__():
     args = parse_arguments()
+    args.run_id = "0829_run1"
 
     # Initialize the game engine
     game_engine = Game()
