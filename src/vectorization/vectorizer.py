@@ -8,10 +8,33 @@ from game_engine.phase import Phase
 
 class DominionVectorizer:
     def __init__(self, card_types: List[str]):
+        """
+        The Vectorizer converts game states into vectors and vice versa for RL algorithms to use.
+        """
         self.card_types = card_types
         self.action_space_size = len(card_types) * 2 + 2  # Play card, buy card, end action, end buy
 
     def vectorize_observation(self, game: Game) -> np.ndarray:
+        """
+        Converts the game state into a vector representation. The resulting vector has the following components (let n = len(card_types)):
+
+        - Vectors where information is a list (because we know the exact order of cards, but that's not used yet)
+            - Hand cards (n)
+            - Played cards (n)
+        - Vectors where we don't know the exact order of cards, so it's a count of each card.
+            - Draw pile count (n)
+            - Discard pile count (n)
+            - Opponent deck count (n)
+            - Supply piles (n)
+        - Other game state information 
+            - Current phase (1 element)
+            - # of actions (1 element)
+            - # of buys (1 element)
+            - # of coins (1 element)
+            - Game over (1 element)
+
+        Total vector length: 6 * n + 5
+        """
         observation = game.get_observation_state()
         current_player = observation['current_player_state']
         opponent = observation['opponent_state']
@@ -29,18 +52,20 @@ class DominionVectorizer:
 
         # Vectorize other game state information
         other_info = np.array([
-            1 if observation['current_player_name'] == 'Player 1' else 0,  # 0 if Player 2, 1 if Player 1
-            phase_encoding,
-            current_player['actions'],
-            current_player['buys'],
-            current_player['coins'],
-            1 if game_state['game_over'] else 0
+            phase_encoding, # What phase of the game are we in?
+            current_player['actions'], # How many actions does the current player have left?
+            current_player['buys'], # How many buys does the current player have left?
+            current_player['coins'], # How many coins does the current player have?
+            1 if game_state['game_over'] else 0 # Is the game over?
         ], dtype=np.float32)
 
         # Concatenate all information into a single vector
         return np.concatenate([hand, draw_pile, discard_pile, played_cards, opponent_deck, supply, other_info]).astype(np.float32)
 
     def _vectorize_cards(self, cards: Union[Dict[str, int], List[Card]]) -> np.ndarray:
+        """
+        Converts a list or dictionary of cards into a vector where each card has a count.
+        """
         vector = np.zeros(len(self.card_types), dtype=np.float32)
         if isinstance(cards, dict):
             for card_name, count in cards.items():
@@ -74,6 +99,9 @@ class DominionVectorizer:
             return Action(player, action_type, CARD_MAP[card_name])
 
     def get_action_mask(self, game: Game) -> np.ndarray:
+        """
+        Returns a mask of valid actions for the current game state.
+        """
         valid_actions = game.get_valid_actions()
 
         mask = np.zeros(self.action_space_size, dtype=np.int8)

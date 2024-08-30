@@ -31,7 +31,44 @@ class Game:
     
     def get_observation_state(self):
         """
-        Get the observation state for the current player.
+        Get the observation state for the current player. Example:
+
+        {
+            'current_player_name': 'Player 1',
+            'current_player_state': {
+                'actions': 1,
+                'buys': 1,
+                'coins': 0,
+                'discard_pile_count': {
+                    'Copper': 10,
+                    'Curse': 6,
+                    ...
+                },
+                'draw_pile_count': {
+                    'Copper': 8,
+                    'Estate': 1,
+                    ...
+                },
+                'hand': [Moneylender, Curse, Estate, Gold, Copper],
+                'played_cards': []
+            },
+            'game_state': {
+                'current_phase': 'action',
+                'game_over': True,
+                'supply_piles': {
+                    'Copper': 20,
+                    'Curse': 0,
+                    ...
+                }
+            },
+            'opponent_state': {
+                'deck_count': {
+                    'Copper': 19,
+                    'Curse': 3,
+                    ...
+                }
+            }
+        }
 
         Returns:
             dict: A dictionary containing the current player's observation state and the game state.
@@ -49,7 +86,13 @@ class Game:
     
     def get_valid_actions(self):
         """
-        Get the valid actions for the current player.
+        Get the valid actions for the current player. Example:
+
+        [
+            Action(player=Player 1, type=ActionType.PLAY, card=Smithy),
+            Action(player=Player 1, type=ActionType.PLAY, card=Laboratory),
+            Action(player=Player 1, type=ActionType.END_ACTION, card=None)
+        ]
 
         Returns:
             list: A list of valid actions that the current player can perform.
