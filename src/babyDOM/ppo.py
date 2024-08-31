@@ -101,6 +101,20 @@ class PPOAgent:
         """
         obs = torch.FloatTensor(obs)
         return self.critic(obs).item()
+    
+    def calculate_reward(self, game_engine: Game, current_player: int, done: bool) -> int:
+        """
+        Calculate the reward for the current player.
+        
+        Args:
+            game_engine (Game): The game engine instance.
+            current_player (int): The index of the current player.
+            done (bool): Whether the game is over.
+        
+        Returns:
+            float: The calculated reward.
+        """
+        return 1 if done and game_engine.winner().name == game_engine.players[current_player].name else 0
    
     def update(self, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
@@ -238,7 +252,7 @@ def ppo_train(
             action.apply()
 
             done = game_engine.game_over
-            reward = game_engine.players[current_player].victory_points() if done else 0
+            reward = agent.calculate_reward(game_engine, current_player, done)
 
             # Log the game state after the action and reward calculation
             game_history.append({
