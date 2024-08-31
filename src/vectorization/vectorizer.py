@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Dict, Union
 from game_engine.game import Game
 from game_engine.action import Action, ActionType
-from game_engine.cards.card import CardType, Card
+from game_engine.cards.card import Card
 from game_engine.cards.card_instances import CARD_MAP
 from game_engine.phase import Phase
 

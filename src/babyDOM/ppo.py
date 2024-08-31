@@ -3,11 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 import numpy as np
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action
-import pandas as pd
 import os
 import csv
 

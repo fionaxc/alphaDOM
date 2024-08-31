@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import argparse
 from babyDOM.ppo import ppo_train
