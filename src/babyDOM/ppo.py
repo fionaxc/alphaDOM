@@ -121,7 +121,7 @@ class PPOAgent:
         
         # Normalize advantages
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-        for _ in range(epochs):
+        for _ in range(epochs): # Number of gradient updates per batch
             # Get new log probs and values
             new_logits = self.actor(observations)
             new_values = self.critic(observations).squeeze()
