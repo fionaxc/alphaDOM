@@ -30,6 +30,7 @@ class PlayerState:
     def get_player_observation_state(self):
         # Get the current player's state
         current_player_state = {
+            'victory_points': self.victory_points(),
             'actions': self.actions,
             'buys': self.buys,
             'coins': self.coins,
@@ -45,6 +46,7 @@ class PlayerState:
         opponent_state = {
             # I should only know the count of each card in his entire deck
             'deck_count': cards_to_dict(opponent.all_cards()),
+            'victory_points': opponent.victory_points(),
             # TODO: Figure out if we want to include # of cards in hand or draw pile
             # TODO: Eventually, add information about some of the known cards in the discard pile
         }
