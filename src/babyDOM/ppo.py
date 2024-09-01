@@ -153,9 +153,9 @@ class PPOAgent:
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         for epoch in range(epochs):
-            print("observations: ", observations)
+            # print("observations: ", observations)
             new_logits = self.actor(observations)
-            print("new_logits: ", new_logits)
+            # print("new_logits: ", new_logits)
             
             new_values = self.critic(observations).squeeze(-1)
             new_probs = stable_softmax(new_logits)
@@ -165,7 +165,7 @@ class PPOAgent:
             # print("new_logits: ", new_logits)
             # print("new_values: ", new_values)
             # print("new_probs: ", new_probs)
-            print("dist: ", dist)
+            # print("dist: ", dist)
             # print("actions: ", actions)
 
             new_log_probs = dist.log_prob(actions)
@@ -344,6 +344,11 @@ def ppo_train(
         
         # Update the reward for the last action if the game is over
         game_history[-1]['reward'] = reward
+        
+        # Determine the winner
+        winner = game_engine.winner()
+        winner_index = 0 if (winner and winner.name == game_engine.players[0].name) else 1
+
         # Update data for both players
         for p in [0, 1]:
             final_obs = vectorizer.vectorize_observation(game_engine)
@@ -356,10 +361,12 @@ def ppo_train(
             dones[p].append(True)
             
             # We don't append to actions and log_probs as no action was taken
+            # Don't append new reward for the winner, as it's already included
+            if p != winner_index:
+                final_reward = agent.calculate_reward(game_engine, p, done)
+                rewards[p].append(final_reward)
+                episode_rewards[p] += final_reward
             
-            episode_rewards[p] += final_reward
-            cumulative_rewards[p] += final_reward
-
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
 
         # Save game history to CSV
