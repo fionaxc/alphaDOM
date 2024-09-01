@@ -59,6 +59,10 @@ class PlayerState:
         # Initialize list of valid actions
         valid_actions = []
 
+        # If the game is over, return empty list
+        if self.game.game_over:
+            return []
+
         # If in action phase, add playable action cards and end action phase action
         if self.game.current_phase == Phase.ACTION:
             valid_actions.extend([Action(self, ActionType.PLAY, card) for card in self.hand if card.is_action()])
@@ -165,3 +169,7 @@ class PlayerState:
     def __str__(self):
         return 'PlayerState(actions={}, buys={}, coins={}, draw_pile={}, hand={}, played_cards={}, discard_pile={})'.format(
             self.actions, self.buys, self.coins, self.draw_pile, self.hand, self.played_cards, self.discard_pile)
+
+    def __eq__(self, other):
+        return self.name == other.name and self.game == other.game
+    

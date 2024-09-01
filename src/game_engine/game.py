@@ -24,7 +24,7 @@ class Game:
         self.current_player_turn = 0
         self.current_phase = Phase.ACTION
         self.game_over = False
-        self.turn_number = 1
+        self.turn_number = [0 for _ in range(num_players)] # Start with 0 for each player
 
         # Start game
         self.start_game()
@@ -76,6 +76,7 @@ class Game:
         observation_state = {
             **self.current_player().get_player_observation_state(),
             'game_state': {
+                'turn_number': self.turn_number,
                 'current_phase': self.current_phase.value,
                 'supply_piles': self.supply_piles,
                 'card_costs': {card: CARD_MAP[card].cost for card in self.supply_piles.keys()},
@@ -105,6 +106,7 @@ class Game:
     def start_game(self):
         # Randomly select player to go first
         self.current_player_turn = random.randint(0, len(self.players) - 1)
+        self.turn_number[self.current_player_turn] += 1
 
         # Initialize each player with 7 coppers, 3 estates and then draw 5 cards
         for player in self.players:
@@ -128,17 +130,37 @@ class Game:
             return
 
         self.current_player_turn = (self.current_player_turn + 1) % len(self.players)
-        self.turn_number += 1
+        self.turn_number[self.current_player_turn] += 1
 
     def current_player(self):
         return self.players[self.current_player_turn]
     
-    def winner(self):
-        if self.game_over:
-            # Find the player with the most VPs
-            return max(self.players, key=lambda player: player.victory_points())
+    def winner(self):   
+        """
+        Return the winner of the game if there is one, otherwise return None. In case of a tie, return None.
+        """
+        if not self.game_over:
+            return None
+        
+        # Find the player(s) with the most VPs
+        max_vp = max(player.victory_points() for player in self.players)
+        candidates = [player for player in self.players if player.victory_points() == max_vp]
+        
+        # If there's only one candidate, they are the winner
+        if len(candidates) == 1:
+            return candidates[0]
+        
+        # Find the player(s) with the fewest turns among the candidates
+        fewest_turns = min(self.turn_number[self.players.index(player)] for player in candidates)
+        fewest_turns_candidates = [player for player in candidates if self.turn_number[self.players.index(player)] == fewest_turns]
+        
+        # If there's only one candidate with the fewest turns, they are the winner
+        if len(fewest_turns_candidates) == 1:
+            return fewest_turns_candidates[0]
+        
+        # If there's still a tie, return None
         return None
-    
+        
     def get_game_state_string(self):
         state = f"Turn {self.turn_number}, Phase: {self.current_phase.value}\n"
         state += f"Current Player: {self.current_player().name}\n"

@@ -50,7 +50,12 @@ class TestGameEngine(unittest.TestCase):
             if game.game_over:
                 print(f"Game over after {i-1} actions on turn {game.turn_number}")
                 pprint(self.simplified_observation_state(game.get_observation_state()))
-                print(f"Winner: {game.winner().name}, Player 1 VP: {game.players[0].victory_points()}, Player 2 VP: {game.players[1].victory_points()}")
+                winner = game.winner()
+                if winner is None:
+                    print("Winner: None")
+                else:
+                    print(f"Winner: {winner.name}")
+                print(f"Player 1 VP: {game.players[0].victory_points()}, Player 2 VP: {game.players[1].victory_points()}")
                 break
 
             # Choose and apply a random action from the valid actions
