@@ -34,7 +34,6 @@ class Game:
         Get the observation state for the current player. Example:
 
         {
-            'current_player_name': 'Player 1',
             'current_player_state': {
                 'victory_points': 1,
                 'actions': 1,
@@ -54,13 +53,21 @@ class Game:
                 'played_cards': []
             },
             'game_state': {
+                'current_player_name': 'Player 1',
+                'turn_number': [1, 1],
                 'current_phase': 'action',
                 'game_over': True,
+                'card_costs': {
+                    'Copper': 0,
+                    'Curse': 0,
+                    ...
+                },
                 'supply_piles': {
                     'Copper': 20,
                     'Curse': 0,
                     ...
-                }
+                },
+                'game_over': False,
             },
             'opponent_state': {
                 'deck_count': {
@@ -78,6 +85,7 @@ class Game:
         observation_state = {
             **self.current_player().get_player_observation_state(),
             'game_state': {
+                'current_player_name': self.current_player().name,
                 'turn_number': self.turn_number,
                 'current_phase': self.current_phase.value,
                 'supply_piles': self.supply_piles,
