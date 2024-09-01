@@ -153,7 +153,8 @@ class PPOAgent:
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         for epoch in range(epochs):
-            # print("observations: ", observations)
+            print("observations: ", observations)
+            print("observations size: ", observations.size())
             new_logits = self.actor(observations)
             # print("new_logits: ", new_logits)
             
@@ -225,7 +226,6 @@ class PPOAgent:
             for name, param in model.named_parameters():
                 if param.grad is not None:
                     f.write(f"{name}: grad mean={param.grad.mean():.6f}, grad std={param.grad.std():.6f}, grad min={param.grad.min():.6f}, grad max={param.grad.max():.6f}\n")
-            f.write(f"\n{'='*60}\n")
 
 def ppo_train(
         game_engine: Game,
