@@ -209,7 +209,6 @@ def ppo_train(
         game_history = []
 
         # Initialize variables for tracking game state
-        turn_counter = 0
         cumulative_rewards = [0, 0]
 
         while not done:
@@ -229,12 +228,11 @@ def ppo_train(
             # Log the game state after the action and reward calculation
             game_history.append({
                 'episode': episode + 1,
-                'turn': turn_counter,
                 'reward': reward,
                 'cumulative_reward': cumulative_rewards[current_player],
                 **game_engine.get_observation_state()
             })
-
+            
             observations[current_player].append(obs)
             actions[current_player].append(vectorizer.vectorize_action(action))
             log_probs[current_player].append(log_prob)
@@ -248,8 +246,6 @@ def ppo_train(
             # Update the reward for the last action if the game is over
             if done:
                 game_history[-1]['reward'] = reward
-
-            turn_counter += 1
 
             if len(observations[current_player]) >= batch_size:
                 agent.update(
@@ -287,10 +283,12 @@ def ppo_train(
                 )
 
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
-
+        
+        print(game_history[0])
+        print(game_history[-1])
         # Save game history to CSV
         with open(os.path.join(output_dir, f"game_history_{episode+1}.csv"), "w", newline='') as f:
-            fieldnames = ['episode', 'turn', 'reward', 'cumulative_reward', 'current_player_name', 
+            fieldnames = ['episode', 'reward', 'cumulative_reward', 'current_player_name', 
                           'current_player_state', 'opponent_state', 'game_state']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
