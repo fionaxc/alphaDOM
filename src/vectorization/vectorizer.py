@@ -56,6 +56,8 @@ class DominionVectorizer:
             current_player['actions'], # How many actions does the current player have left?
             current_player['buys'], # How many buys does the current player have left?
             current_player['coins'], # How many coins does the current player have?
+            current_player['victory_points'], # How many victory points does the current player have?
+            opponent['victory_points'], # How many victory points does the opponent have?
             1 if game_state['game_over'] else 0 # Is the game over?
         ], dtype=np.float32)
 

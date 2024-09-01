@@ -119,47 +119,35 @@ class PPOAgent:
     def update(self, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
                epochs: int, vectorizer: DominionVectorizer):
-        """
-        Update the agent's policy using the PPO-Clip algorithm with a combined loss function for actor and critic.
-        """
-        observations = torch.FloatTensor(observations)
+        observations = torch.FloatTensor(np.array(observations))
         actions = torch.LongTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
         rewards = torch.FloatTensor(rewards)
         values = torch.FloatTensor(values)
         dones = torch.FloatTensor(dones)
 
-        # Compute returns and advantages using GAE
-        # The returns are used as target for the critic and the advantages are used to update the actor
         returns, advantages = self.compute_gae(rewards, values, next_value, dones)
-        
-        # Normalize advantages
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-        for _ in range(epochs): # Number of gradient updates per batch
-            # Get new log probs and values
+
+        for _ in range(epochs):
             new_logits = self.actor(observations)
-            new_values = self.critic(observations).squeeze()
+            new_values = self.critic(observations).squeeze(-1)
             
-            # Create action distribution
             new_probs = torch.softmax(new_logits, dim=-1)
             dist = Categorical(new_probs)
             
             new_log_probs = dist.log_prob(actions)
             entropy = dist.entropy()
 
-            # Compute ratio and surrogate loss
             ratio = torch.exp(new_log_probs - old_log_probs)
             surrogate1 = ratio * advantages
             surrogate2 = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * advantages
             actor_loss = -torch.min(surrogate1, surrogate2).mean()
 
-            # Compute value loss
             value_loss = nn.MSELoss()(new_values, returns)
 
-            # Compute total loss
             loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
 
-            # Update actor and critic
             self.actor_optimizer.zero_grad()
             self.critic_optimizer.zero_grad()
             loss.backward()
@@ -185,22 +173,6 @@ class PPOAgent:
         # Compute the returns as the sum of the advantages and the values (to be used as target for the critic)
         returns = advantages + values
         return returns, advantages
-
-
-def record_game_history(game_engine, vectorizer, episode, turn_counter, current_player, action, reward, cumulative_reward):
-    observation_state = game_engine.get_observation_state()
-    valid_actions = game_engine.get_valid_actions()
-    
-    return {
-        'Episode': episode + 1,
-        'Turn': turn_counter,
-        'Player': current_player + 1,
-        'Action': str(action),
-        'Reward': reward,
-        'Cumulative_Reward': cumulative_reward,
-        'Game_State': observation_state,
-        'Valid_Actions': [str(a) for a in valid_actions]
-    }
 
 def ppo_train(
         game_engine: Game,
@@ -256,11 +228,11 @@ def ppo_train(
 
             # Log the game state after the action and reward calculation
             game_history.append({
+                'episode': episode + 1,
                 'turn': turn_counter,
-                'player': game_engine.current_player().name,
-                'action': str(action),
-                'state': game_engine.get_game_state_string(),
-                'reward': reward
+                'reward': reward,
+                'cumulative_reward': cumulative_rewards[current_player],
+                **game_engine.get_observation_state()
             })
 
             observations[current_player].append(obs)
@@ -315,10 +287,11 @@ def ppo_train(
                 )
 
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
-        
+
         # Save game history to CSV
         with open(os.path.join(output_dir, f"game_history_{episode+1}.csv"), "w", newline='') as f:
-            fieldnames = ['turn', 'player', 'action', 'state', 'reward']
+            fieldnames = ['episode', 'turn', 'reward', 'cumulative_reward', 'current_player_name', 
+                          'current_player_state', 'opponent_state', 'game_state']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(game_history)
