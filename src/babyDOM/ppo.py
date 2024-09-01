@@ -11,6 +11,7 @@ from .utils import convert_action_probs_to_readable
 import os
 import csv
 import copy
+import logging
 
 class PPOActor(nn.Module):
     def __init__(self, input_size: int, output_size: int, hidden_size: int):
@@ -52,7 +53,8 @@ class PPOAgent:
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
                  entropy_coef: float = 0.01, 
-                 gae_lambda: float = 0.95):
+                 gae_lambda: float = 0.95,
+                 output_dir: str = "src/output"):
         """
         Initialize the PPOAgent that uses a combined loss function for actor and critic.
 
@@ -76,6 +78,16 @@ class PPOAgent:
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
         self.gae_lambda = gae_lambda
+
+        # Paths to the gradient log files
+        self.actor_gradient_log_path = os.path.join(output_dir, 'actor_gradient_log.txt')
+        self.critic_gradient_log_path = os.path.join(output_dir, 'critic_gradient_log.txt')
+        
+        # Create the gradient log files if they don't exist
+        for path in [self.actor_gradient_log_path, self.critic_gradient_log_path]:
+            if not os.path.exists(path):
+                with open(path, 'w') as f:
+                    f.write('')  # Create an empty file
 
     def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float, torch.Tensor]:
         """
@@ -139,7 +151,7 @@ class PPOAgent:
         returns, advantages = self.compute_gae(rewards, values, next_value, dones)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        for _ in range(epochs):
+        for epoch in range(epochs):
             print("observations: ", observations)
             new_logits = self.actor(observations)
             print("new_logits: ", new_logits)
@@ -167,6 +179,11 @@ class PPOAgent:
             self.actor_optimizer.zero_grad()
             self.critic_optimizer.zero_grad()
             loss.backward()
+
+            # Log gradients for actor and critic
+            self.log_gradients(self.actor, "Actor", epoch, self.actor_gradient_log_path)
+            self.log_gradients(self.critic, "Critic", epoch, self.critic_gradient_log_path)
+
             self.actor_optimizer.step()
             self.critic_optimizer.step()
     
@@ -190,6 +207,22 @@ class PPOAgent:
         returns = advantages + values
         return returns, advantages
 
+    def log_gradients(self, model: nn.Module, model_name: str, update_step: int, log_path: str):
+        """
+        Log the gradients of the model parameters to a file.
+
+        Args:
+            model (nn.Module): The model whose gradients are to be logged.
+            model_name (str): The name of the model (e.g., 'Actor' or 'Critic').
+            log_path (str): The path to the log file.
+        """
+        with open(log_path, 'a') as f:
+            f.write(f"\n{'='*20} {model_name} Gradients at Update Step {update_step} {'='*20}\n")
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    f.write(f"{name}: grad mean={param.grad.mean():.6f}, grad std={param.grad.std():.6f}, grad min={param.grad.min():.6f}, grad max={param.grad.max():.6f}\n")
+            f.write(f"\n{'='*60}\n")
+
 def ppo_train(
         game_engine: Game,
         vectorizer: DominionVectorizer,
@@ -198,13 +231,13 @@ def ppo_train(
         num_episodes: int,
         batch_size: int,
         update_epochs: int,
-        hidden_size: int
+        hidden_size: int,
 ) -> Tuple[PPOAgent, PPOAgent]:
     
     obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
-    player1 = PPOAgent(obs_dim, action_dim, hidden_size)
-    player2 = PPOAgent(obs_dim, action_dim, hidden_size)
+    player1 = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
+    player2 = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
     
     # Create a directory for storing output files
     os.makedirs(output_dir, exist_ok=True)

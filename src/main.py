@@ -37,7 +37,7 @@ def __main__():
         num_episodes=args.num_episodes,
         batch_size=args.batch_size,
         update_epochs=args.update_epochs,
-        hidden_size=args.hidden_size
+        hidden_size=args.hidden_size,
     )
 
     print(f"Training completed for run {args.run_id}")
