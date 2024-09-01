@@ -44,9 +44,9 @@ class PlayerState:
         # Get the opponent's state
         opponent = self.game.get_other_player()
         opponent_state = {
+            'victory_points': opponent.victory_points(),
             # I should only know the count of each card in his entire deck
             'deck_count': cards_to_dict(opponent.all_cards()),
-            'victory_points': opponent.victory_points(),
             # TODO: Figure out if we want to include # of cards in hand or draw pile
             # TODO: Eventually, add information about some of the known cards in the discard pile
         }

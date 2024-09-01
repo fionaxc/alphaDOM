@@ -34,3 +34,12 @@ class Action:
 
     def __repr__(self):
         return f"Action(player={self.player.name}, type={self.action_type}, card={self.card})"
+    
+    def __str__(self):
+        action_messages = {
+            ActionType.PLAY: f"{self.player.name} plays {self.card.name if self.card else 'a card'}.",
+            ActionType.BUY: f"{self.player.name} buys a {self.card.name if self.card else 'card'}.",
+            ActionType.END_ACTION: f"{self.player.name} ends action phase.",
+            ActionType.END_BUY: f"{self.player.name} ends buy phase."
+        }
+        return action_messages[self.action_type]
