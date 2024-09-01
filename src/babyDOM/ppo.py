@@ -10,6 +10,7 @@ from game_engine.action import Action
 import os
 import csv
 import copy
+from .utils import stable_softmax
 
 class PPOActor(nn.Module):
     def __init__(self, input_size: int, output_size: int, hidden_size: int):
@@ -46,7 +47,7 @@ class PPOAgent:
     def __init__(self, obs_dim: int, 
                  action_dim: int, 
                  hidden_size: int, 
-                 lr: float = 1e-4, 
+                 lr: float = 3e-4, 
                  gamma: float = 0.99, 
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
@@ -138,20 +139,20 @@ class PPOAgent:
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         for _ in range(epochs):
-            print("observations: ", observations)
-            new_logits = self.actor(observations)
-            print("new_logits: ", new_logits)
-            
+            new_logits = self.actor(observations)        
             new_values = self.critic(observations).squeeze(-1)
-            
-            new_probs = torch.softmax(new_logits, dim=-1)
-            print("new_probs: ", new_probs)
+            new_probs = stable_softmax(new_logits)
             dist = Categorical(new_probs)
+            
+            # print("observations: ", observations)
+            # print("new_logits: ", new_logits)
+            # print("new_values: ", new_values)
+            # print("new_probs: ", new_probs)
             print("dist: ", dist)
-            
-            
+            # print("actions: ", actions)
+
             new_log_probs = dist.log_prob(actions)
-            entropy = dist.entropy()
+            entropy = dist.entropy()    
 
             ratio = torch.exp(new_log_probs - old_log_probs)
             surrogate1 = ratio * advantages
@@ -286,21 +287,21 @@ def ppo_train(
                 values[current_player] = []
                 dones[current_player] = []
 
-        # End of episode update
-        for current_player in [0, 1]:
-            agent = player1 if current_player == 0 else player2
-            if len(observations[current_player]) > 0:
-                agent.update(
-                    observations[current_player],
-                    actions[current_player],
-                    log_probs[current_player],
-                    rewards[current_player],
-                    values[current_player],
-                    dones[current_player],
-                    next_value=0,
-                    epochs=update_epochs,
-                    vectorizer=vectorizer
-                )
+        # # End of episode update
+        # for current_player in [0, 1]:
+        #     agent = player1 if current_player == 0 else player2
+        #     if len(observations[current_player]) > 0:
+        #         agent.update(
+        #             observations[current_player],
+        #             actions[current_player],
+        #             log_probs[current_player],
+        #             rewards[current_player],
+        #             values[current_player],
+        #             dones[current_player],
+        #             next_value=0,
+        #             epochs=update_epochs,
+        #             vectorizer=vectorizer
+        #         )
         
         # Update the reward for the last action if the game is over
         game_history[-1]['reward'] = reward
