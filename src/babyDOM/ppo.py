@@ -239,12 +239,21 @@ def ppo_train(
             done = game_engine.game_over
             reward = agent.calculate_reward(game_engine, current_player, done)
 
+            game_engine_observation_state_copy = copy.deepcopy(game_engine.get_observation_state())
+
             # Log the game state after the action and reward calculation
             game_history.append({
                 'episode': episode + 1,
+                'game_over': game_engine_observation_state_copy['game_state']['game_over'],
                 'reward': reward,
                 'cumulative_reward': cumulative_rewards[current_player],
-                **copy.deepcopy(game_engine.get_observation_state())
+                'current_turns': game_engine_observation_state_copy['game_state']['turn_number'],
+                'current_player_name': game_engine_observation_state_copy['game_state']['current_player_name'],
+                'current_phase': game_engine_observation_state_copy['game_state']['current_phase'],
+                'action': str(action),
+                'current_player_state': game_engine_observation_state_copy['current_player_state'],
+                'opponent_state': game_engine_observation_state_copy['opponent_state'],
+                'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles'],
             })
             
             observations[current_player].append(obs)
@@ -315,8 +324,7 @@ def ppo_train(
 
         # Save game history to CSV
         with open(os.path.join(output_dir, f"game_history_{episode+1}.csv"), "w", newline='') as f:
-            fieldnames = ['episode', 'reward', 'cumulative_reward', 'current_player_name', 
-                          'current_player_state', 'opponent_state', 'game_state']
+            fieldnames = list(game_history[0].keys())
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(game_history)
