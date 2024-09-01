@@ -284,9 +284,7 @@ def ppo_train(
                 )
 
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
-        
-        print(game_history[0])
-        print(game_history[-1])
+
         # Save game history to CSV
         with open(os.path.join(output_dir, f"game_history_{episode+1}.csv"), "w", newline='') as f:
             fieldnames = ['episode', 'reward', 'cumulative_reward', 'current_player_name', 

@@ -34,23 +34,43 @@ python3 -m unittest discover -s tests
 
 ## Running the Training Process
 
-To run the main training process, use the following command from the root directory of the project:
+1. Create a virtual environment:
 
-```bash
-python3 main.py [arguments]
-```
+   ```bash
+   python3 -m venv alphaDOM_env
+   ```
+
+2. Activate the virtual environment:
+
+   ```bash
+   source alphaDOM_env/bin/activate
+   ```
+
+3. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. To run the main training process, use the following command from the root directory of the project:
+
+   ```bash
+   python3 src/main.py [arguments]
+   ```
+
+5. Results will be saved to the src/output directory!
 
 ### Command-line Arguments
 
 The script accepts the following command-line arguments:
 
-| Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `--num_episodes` | int | 100 | Number of episodes to train |
-| `--batch_size` | int | 32 | Batch size for training |
-| `--update_epochs` | int | 10 | Number of epochs for each update |
-| `--hidden_size` | int | 64 | Hidden size of the neural network |
-| `--run_id` | str | "default_run" | Unique identifier for this run |
+| Argument          | Type | Default       | Description                       |
+| ----------------- | ---- | ------------- | --------------------------------- |
+| `--num_episodes`  | int  | 100           | Number of episodes to train       |
+| `--batch_size`    | int  | 32            | Batch size for training           |
+| `--update_epochs` | int  | 10            | Number of epochs for each update  |
+| `--hidden_size`   | int  | 64            | Hidden size of the neural network |
+| `--run_id`        | str  | "default_run" | Unique identifier for this run    |
 
 Example:
 
@@ -66,4 +86,3 @@ This will start the training process using the specified parameters. The script 
 4. Run the PPO training algorithm
 5. Save the trained agents and output files
 6. Save the training parameters to a CSV file
-

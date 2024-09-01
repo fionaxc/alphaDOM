@@ -82,6 +82,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+alphaDOM_env/
 
 # Logs
 *.log
@@ -92,3 +93,6 @@ data/processed/
 
 # Model checkpoints
 checkpoints/
+
+# Ignore output directory
+output/

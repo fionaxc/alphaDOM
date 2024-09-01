@@ -25,8 +25,8 @@ def __main__():
     # Initialize the vectorizer
     vectorizer = DominionVectorizer(game_engine.all_card_names)
 
-    # Create output directory
-    output_dir = os.path.join(os.path.expanduser('~/Documents/'), 'dominion_output', args.run_id)
+    # Create output directory within the alphaDom repository
+    output_dir = os.path.join(os.path.dirname(__file__), 'output', args.run_id)
     os.makedirs(output_dir, exist_ok=True)
 
     trained_agent1, trained_agent2 = ppo_train(
@@ -51,7 +51,6 @@ def __main__():
     # Save the trained agents
     torch.save(trained_agent1, os.path.join(output_dir, "trained_agent1.pth"))
     torch.save(trained_agent2, os.path.join(output_dir, "trained_agent2.pth"))
-
 
 if __name__ == "__main__":
     __main__()
