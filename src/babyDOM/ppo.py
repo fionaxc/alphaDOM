@@ -115,15 +115,16 @@ class PPOAgent:
         Returns:
             float: The calculated reward.
         """
-        #Winning reward
+        # Winning reward
         if done and game_engine.winner() is not None and game_engine.winner().name == game_engine.players[current_player].name: 
             return 1
-        #Tie reward
+        # Tie reward
         elif done and game_engine.winner() is None: 
             return 0.2
-        #Losing reward
+        # Losing or continuing reward
         else:
             return 0
+
     def update(self, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
                epochs: int, vectorizer: DominionVectorizer):
@@ -248,9 +249,9 @@ def ppo_train(
                 'reward': reward,
                 'cumulative_reward': cumulative_rewards[current_player],
                 'current_turns': game_engine_observation_state_copy['game_state']['turn_number'],
+                'after_doing_action': str(action),
                 'current_player_name': game_engine_observation_state_copy['game_state']['current_player_name'],
                 'current_phase': game_engine_observation_state_copy['game_state']['current_phase'],
-                'action': str(action),
                 'current_player_state': game_engine_observation_state_copy['current_player_state'],
                 'opponent_state': game_engine_observation_state_copy['opponent_state'],
                 'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles'],
