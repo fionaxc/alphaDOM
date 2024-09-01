@@ -31,6 +31,15 @@ class Action:
         
         # Call the appropriate method based on action_type
         action_methods[self.action_type](self.card) if self.card else action_methods[self.action_type]()
+    
+    def shorthand(self):
+        action_shorthand = {
+            ActionType.PLAY: f"Play {self.card.name if self.card else 'a card'}.",
+            ActionType.BUY: f"Buy {self.card.name if self.card else 'a card'}.",
+            ActionType.END_ACTION: f"End actions",
+            ActionType.END_BUY: f"End buys"
+        }
+        return action_shorthand[self.action_type]
 
     def __repr__(self):
         return f"Action(player={self.player.name}, type={self.action_type}, card={self.card})"

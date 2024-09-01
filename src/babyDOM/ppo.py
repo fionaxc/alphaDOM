@@ -7,6 +7,7 @@ from typing import List, Tuple
 from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action
+from .utils import convert_action_probs_to_readable
 import os
 import csv
 import copy
@@ -76,7 +77,7 @@ class PPOAgent:
         self.entropy_coef = entropy_coef
         self.gae_lambda = gae_lambda
 
-    def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float]:
+    def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float, torch.Tensor]:
         """
         Get the action from the agent's policy. Returns the selected action and the log probability of the action (used for updating the policy).
         """
@@ -94,7 +95,7 @@ class PPOAgent:
 
         action_index = m.sample()
         selected_action = vectorizer.devectorize_action(action_index.item(), game.current_player())
-        return selected_action, m.log_prob(action_index).item()
+        return selected_action, m.log_prob(action_index).item(), probs
 
     def get_value(self, obs: np.ndarray) -> float:
         """
@@ -232,7 +233,7 @@ def ppo_train(
             
             obs = vectorizer.vectorize_observation(game_engine)
             
-            action, log_prob = agent.get_action(obs, game_engine, vectorizer)
+            action, log_prob, probs = agent.get_action(obs, game_engine, vectorizer)
             value = agent.get_value(obs)
 
             action.apply()
@@ -250,6 +251,7 @@ def ppo_train(
                 'cumulative_reward': cumulative_rewards[current_player],
                 'current_turns': game_engine_observation_state_copy['game_state']['turn_number'],
                 'after_doing_action': str(action),
+                'action_probs': convert_action_probs_to_readable(probs, vectorizer, game_engine),
                 'current_player_name': game_engine_observation_state_copy['game_state']['current_player_name'],
                 'current_phase': game_engine_observation_state_copy['game_state']['current_phase'],
                 'current_player_state': game_engine_observation_state_copy['current_player_state'],
