@@ -7,10 +7,12 @@ from typing import List, Tuple
 from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action
+from .utils import convert_action_probs_to_readable
 import os
 import csv
 import copy
 from .utils import stable_softmax
+import logging
 
 class PPOActor(nn.Module):
     def __init__(self, input_size: int, output_size: int, hidden_size: int):
@@ -52,7 +54,8 @@ class PPOAgent:
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
                  entropy_coef: float = 0.01, 
-                 gae_lambda: float = 0.95):
+                 gae_lambda: float = 0.95,
+                 output_dir: str = "src/output"):
         """
         Initialize the PPOAgent that uses a combined loss function for actor and critic.
 
@@ -77,7 +80,17 @@ class PPOAgent:
         self.entropy_coef = entropy_coef
         self.gae_lambda = gae_lambda
 
-    def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float]:
+        # Paths to the gradient log files
+        self.actor_gradient_log_path = os.path.join(output_dir, 'actor_gradient_log.txt')
+        self.critic_gradient_log_path = os.path.join(output_dir, 'critic_gradient_log.txt')
+        
+        # Create the gradient log files if they don't exist
+        for path in [self.actor_gradient_log_path, self.critic_gradient_log_path]:
+            if not os.path.exists(path):
+                with open(path, 'w') as f:
+                    f.write('')  # Create an empty file
+
+    def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float, torch.Tensor]:
         """
         Get the action from the agent's policy. Returns the selected action and the log probability of the action (used for updating the policy).
         """
@@ -95,7 +108,7 @@ class PPOAgent:
 
         action_index = m.sample()
         selected_action = vectorizer.devectorize_action(action_index.item(), game.current_player())
-        return selected_action, m.log_prob(action_index).item()
+        return selected_action, m.log_prob(action_index).item(), probs
 
     def get_value(self, obs: np.ndarray) -> float:
         """
@@ -116,15 +129,16 @@ class PPOAgent:
         Returns:
             float: The calculated reward.
         """
-        #Winning reward
+        # Winning reward
         if done and game_engine.winner() is not None and game_engine.winner().name == game_engine.players[current_player].name: 
             return 1
-        #Tie reward
+        # Tie reward
         elif done and game_engine.winner() is None: 
             return 0.2
-        #Losing reward
+        # Losing or continuing reward
         else:
             return 0
+
     def update(self, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
                epochs: int, vectorizer: DominionVectorizer):
@@ -138,8 +152,11 @@ class PPOAgent:
         returns, advantages = self.compute_gae(rewards, values, next_value, dones)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        for _ in range(epochs):
-            new_logits = self.actor(observations)        
+        for epoch in range(epochs):
+            print("observations: ", observations)
+            new_logits = self.actor(observations)
+            print("new_logits: ", new_logits)
+            
             new_values = self.critic(observations).squeeze(-1)
             new_probs = stable_softmax(new_logits)
             dist = Categorical(new_probs)
@@ -166,6 +183,11 @@ class PPOAgent:
             self.actor_optimizer.zero_grad()
             self.critic_optimizer.zero_grad()
             loss.backward()
+
+            # Log gradients for actor and critic
+            self.log_gradients(self.actor, "Actor", epoch, self.actor_gradient_log_path)
+            self.log_gradients(self.critic, "Critic", epoch, self.critic_gradient_log_path)
+
             self.actor_optimizer.step()
             self.critic_optimizer.step()
     
@@ -189,6 +211,22 @@ class PPOAgent:
         returns = advantages + values
         return returns, advantages
 
+    def log_gradients(self, model: nn.Module, model_name: str, update_step: int, log_path: str):
+        """
+        Log the gradients of the model parameters to a file.
+
+        Args:
+            model (nn.Module): The model whose gradients are to be logged.
+            model_name (str): The name of the model (e.g., 'Actor' or 'Critic').
+            log_path (str): The path to the log file.
+        """
+        with open(log_path, 'a') as f:
+            f.write(f"\n{'='*20} {model_name} Gradients at Update Step {update_step} {'='*20}\n")
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    f.write(f"{name}: grad mean={param.grad.mean():.6f}, grad std={param.grad.std():.6f}, grad min={param.grad.min():.6f}, grad max={param.grad.max():.6f}\n")
+            f.write(f"\n{'='*60}\n")
+
 def ppo_train(
         game_engine: Game,
         vectorizer: DominionVectorizer,
@@ -197,13 +235,13 @@ def ppo_train(
         num_episodes: int,
         batch_size: int,
         update_epochs: int,
-        hidden_size: int
+        hidden_size: int,
 ) -> Tuple[PPOAgent, PPOAgent]:
     
     obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
-    player1 = PPOAgent(obs_dim, action_dim, hidden_size)
-    player2 = PPOAgent(obs_dim, action_dim, hidden_size)
+    player1 = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
+    player2 = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
     
     # Create a directory for storing output files
     os.makedirs(output_dir, exist_ok=True)
@@ -232,7 +270,7 @@ def ppo_train(
             
             obs = vectorizer.vectorize_observation(game_engine)
             
-            action, log_prob = agent.get_action(obs, game_engine, vectorizer)
+            action, log_prob, probs = agent.get_action(obs, game_engine, vectorizer)
             value = agent.get_value(obs)
 
             action.apply()
@@ -249,9 +287,10 @@ def ppo_train(
                 'reward': reward,
                 'cumulative_reward': cumulative_rewards[current_player],
                 'current_turns': game_engine_observation_state_copy['game_state']['turn_number'],
+                'after_doing_action': str(action),
+                'action_probs': convert_action_probs_to_readable(probs, vectorizer, game_engine),
                 'current_player_name': game_engine_observation_state_copy['game_state']['current_player_name'],
                 'current_phase': game_engine_observation_state_copy['game_state']['current_phase'],
-                'action': str(action),
                 'current_player_state': game_engine_observation_state_copy['current_player_state'],
                 'opponent_state': game_engine_observation_state_copy['opponent_state'],
                 'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles'],
