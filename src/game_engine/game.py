@@ -36,6 +36,7 @@ class Game:
         {
             'current_player_name': 'Player 1',
             'current_player_state': {
+                'victory_points': 1,
                 'actions': 1,
                 'buys': 1,
                 'coins': 0,
@@ -66,7 +67,8 @@ class Game:
                     'Copper': 19,
                     'Curse': 3,
                     ...
-                }
+                },
+                'victory_points': 1,
             }
         }
 
