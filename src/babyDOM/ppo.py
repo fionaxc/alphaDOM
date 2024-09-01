@@ -46,7 +46,7 @@ class PPOAgent:
     def __init__(self, obs_dim: int, 
                  action_dim: int, 
                  hidden_size: int, 
-                 lr: float = 3e-4, 
+                 lr: float = 1e-4, 
                  gamma: float = 0.99, 
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
@@ -115,8 +115,15 @@ class PPOAgent:
         Returns:
             float: The calculated reward.
         """
-        return 1 if done and game_engine.winner().name == game_engine.players[current_player].name else 0
-   
+        #Winning reward
+        if done and game_engine.winner() is not None and game_engine.winner().name == game_engine.players[current_player].name: 
+            return 1
+        #Tie reward
+        elif done and game_engine.winner() is None: 
+            return 0.2
+        #Losing reward
+        else:
+            return 0
     def update(self, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
                epochs: int, vectorizer: DominionVectorizer):
@@ -131,11 +138,17 @@ class PPOAgent:
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         for _ in range(epochs):
+            print("observations: ", observations)
             new_logits = self.actor(observations)
+            print("new_logits: ", new_logits)
+            
             new_values = self.critic(observations).squeeze(-1)
             
             new_probs = torch.softmax(new_logits, dim=-1)
+            print("new_probs: ", new_probs)
             dist = Categorical(new_probs)
+            print("dist: ", dist)
+            
             
             new_log_probs = dist.log_prob(actions)
             entropy = dist.entropy()
@@ -243,11 +256,8 @@ def ppo_train(
             
             episode_rewards[current_player] += reward
             cumulative_rewards[current_player] += reward
-
-            # Update the reward for the last action if the game is over
-            if done:
-                game_history[-1]['reward'] = reward
-
+            
+            # Update the agent   
             if len(observations[current_player]) >= batch_size:
                 agent.update(
                     observations[current_player],
@@ -266,7 +276,7 @@ def ppo_train(
                 rewards[current_player] = []
                 values[current_player] = []
                 dones[current_player] = []
-        
+
         # End of episode update
         for current_player in [0, 1]:
             agent = player1 if current_player == 0 else player2
@@ -282,6 +292,24 @@ def ppo_train(
                     epochs=update_epochs,
                     vectorizer=vectorizer
                 )
+        
+        # Update the reward for the last action if the game is over
+        game_history[-1]['reward'] = reward
+        # Update data for both players
+        for p in [0, 1]:
+            final_obs = vectorizer.vectorize_observation(game_engine)
+            final_value = player1.get_value(final_obs) if p == 0 else player2.get_value(final_obs)
+            final_reward = player1.calculate_reward(game_engine, p, done) if p == 0 else player2.calculate_reward(game_engine, p, done)
+            
+            observations[p].append(final_obs)
+            values[p].append(final_value)
+            rewards[p].append(final_reward)
+            dones[p].append(True)
+            
+            # We don't append to actions and log_probs as no action was taken
+            
+            episode_rewards[p] += final_reward
+            cumulative_rewards[p] += final_reward
 
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
 
