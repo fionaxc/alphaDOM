@@ -9,6 +9,7 @@ from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action
 import os
 import csv
+import copy
 
 class PPOActor(nn.Module):
     def __init__(self, input_size: int, output_size: int, hidden_size: int):
@@ -232,7 +233,7 @@ def ppo_train(
                 'turn': turn_counter,
                 'reward': reward,
                 'cumulative_reward': cumulative_rewards[current_player],
-                **game_engine.get_observation_state()
+                **copy.deepcopy(game_engine.get_observation_state())
             })
 
             observations[current_player].append(obs)
