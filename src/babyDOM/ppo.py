@@ -48,7 +48,7 @@ class PPOAgent:
     def __init__(self, obs_dim: int, 
                  action_dim: int, 
                  hidden_size: int, 
-                 lr: float = 3e-4, 
+                 lr: float = 1e-4, 
                  gamma: float = 0.99, 
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
@@ -221,23 +221,39 @@ class PPOAgent:
             f.write(f"Entropy: {entropy.mean().item():.6f}\n")
             f.write(f"Total Loss: {total_loss.item():.6f}\n")
             num_elements = 7  # Change this variable to adjust the number of elements printed
-            f.write(f"Advantages: {advantages[:num_elements].tolist()} ... {advantages[-num_elements:].tolist()}\n")
+            truncated_advantages = [round(a.item(), 6) for a in advantages[:num_elements]] + ["..."] + [round(a.item(), 6) for a in advantages[-num_elements:]]
+            f.write(f"Advantages: {truncated_advantages}\n")
             f.write(f"Returns: {returns.mean().item():.6f} (mean), {returns.std().item():.6f} (std)\n")
             f.write("Actor Network:\n")
             for name, param in self.actor.named_parameters():
-                f.write(f"{name}: mean={param.mean().item():.6f}, std={param.std().item():.6f}\n")
+                f.write(f"{name}: mean={param.mean().item():.6f}")
+                if param.numel() > 1:  # Check if tensor has more than one element
+                    f.write(f", std={param.std().item():.6f}\n")
+                else:
+                    f.write(", std=N/A\n")
             f.write("Critic Network:\n")
             for name, param in self.critic.named_parameters():
-                f.write(f"{name}: mean={param.mean().item():.6f}, std={param.std().item():.6f}\n")
+                f.write(f"{name}: mean={param.mean().item():.6f}")
+                if param.numel() > 1:  # Check if tensor has more than one element
+                    f.write(f", std={param.std().item():.6f}\n")
+                else:
+                    f.write(", std=N/A\n")
             f.write("Actor Gradients:\n")
             for name, param in self.actor.named_parameters():
                 if param.grad is not None:
-                    f.write(f"{name}: grad mean={param.grad.mean().item():.6f}, grad std={param.grad.std().item():.6f}\n")
+                    f.write(f"{name}: grad mean={param.grad.mean().item():.6f}")
+                    if param.grad.numel() > 1:  # Check if tensor has more than one element
+                        f.write(f", grad std={param.grad.std().item():.6f}\n")
+                    else:
+                        f.write(", grad std=N/A\n")
             f.write("Critic Gradients:\n")
             for name, param in self.critic.named_parameters():
                 if param.grad is not None:
-                    f.write(f"{name}: grad mean={param.grad.mean().item():.6f}, grad std={param.grad.std().item():.6f}\n")
-            f.write("\n")
+                    f.write(f"{name}: grad mean={param.grad.mean().item():.6f}")
+                    if param.grad.numel() > 1:  # Check if tensor has more than one element
+                        f.write(f", grad std={param.grad.std().item():.6f}\n")
+                    else:
+                        f.write(", grad std=N/A\n")
 
 def ppo_train(
         game_engine: Game,
@@ -257,6 +273,10 @@ def ppo_train(
     
     # Create a directory for storing output files
     os.makedirs(output_dir, exist_ok=True)
+
+    # Log initial critical information
+    player1.log_critical_info("Player 1", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
+    player2.log_critical_info("Player 2", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
 
     # Initialize buffers
     buffer = {
