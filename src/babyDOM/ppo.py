@@ -78,16 +78,7 @@ class PPOAgent:
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
         self.gae_lambda = gae_lambda
-
-        # Paths to the gradient log files
-        self.actor_gradient_log_path = os.path.join(output_dir, 'actor_gradient_log.txt')
-        self.critic_gradient_log_path = os.path.join(output_dir, 'critic_gradient_log.txt')
-        
-        # Create the gradient log files if they don't exist
-        for path in [self.actor_gradient_log_path, self.critic_gradient_log_path]:
-            if not os.path.exists(path):
-                with open(path, 'w') as f:
-                    f.write('')  # Create an empty file
+        self.output_dir = output_dir
 
     def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float, torch.Tensor]:
         """
@@ -138,9 +129,9 @@ class PPOAgent:
         else:
             return 0
 
-    def update(self, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
+    def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
-               epochs: int, vectorizer: DominionVectorizer):
+               epochs: int, vectorizer: DominionVectorizer, episode: int = 0):
         observations = torch.FloatTensor(np.array(observations))
         actions = torch.LongTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
@@ -152,8 +143,6 @@ class PPOAgent:
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         for epoch in range(epochs):
-            print("observations: ", observations)
-            print("observations size: ", observations.size())
             new_logits = self.actor(observations)
             # print("new_logits: ", new_logits)
             
@@ -168,9 +157,6 @@ class PPOAgent:
             # print("dist: ", dist)
             # print("actions: ", actions)
 
-            print("actions: ", actions.size(), epoch)
-            # Print out the actions array fully for debugging purposes
-            print("Actions array: ", actions.numpy())
             new_log_probs = dist.log_prob(actions)
             entropy = dist.entropy()    
 
@@ -186,20 +172,18 @@ class PPOAgent:
             self.actor_optimizer.zero_grad()
             self.critic_optimizer.zero_grad()
             loss.backward()
-
-            # Log gradients for actor and critic
-            self.log_gradients(self.actor, "Actor", epoch, self.actor_gradient_log_path)
-            self.log_gradients(self.critic, "Critic", epoch, self.critic_gradient_log_path)
-
             self.actor_optimizer.step()
             self.critic_optimizer.step()
+
+            # Log critical information every 10 episodes
+            if (episode + 1) % 10 == 0 and epoch == epochs - 1:
+                self.log_critical_info(player_name, episode + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, loss, advantages, returns)
     
     def compute_gae(self, rewards: torch.Tensor, values: torch.Tensor, next_value: torch.Tensor, 
                     dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         advantages = torch.zeros_like(rewards)
         last_gae = 0
         # Compute a smoothed advantage estimate for each time step
-        print("what", range(len(rewards)), len(rewards))
         for t in reversed(range(len(rewards))):
             if t == len(rewards) - 1:
                 next_non_terminal = 1.0 - dones[t]
@@ -214,21 +198,46 @@ class PPOAgent:
         # Compute the returns as the sum of the advantages and the values (to be used as target for the critic)
         returns = advantages + values
         return returns, advantages
-
-    def log_gradients(self, model: nn.Module, model_name: str, update_step: int, log_path: str):
+    
+    def log_critical_info(self, player_name: str, episode: int, actor_loss: torch.Tensor, value_loss: torch.Tensor, 
+                          surrogate1: torch.Tensor, surrogate2: torch.Tensor, ratio: torch.Tensor, 
+                          entropy: torch.Tensor, total_loss: torch.Tensor, advantages: torch.Tensor, returns: torch.Tensor):
         """
-        Log the gradients of the model parameters to a file.
-
-        Args:
-            model (nn.Module): The model whose gradients are to be logged.
-            model_name (str): The name of the model (e.g., 'Actor' or 'Critic').
-            log_path (str): The path to the log file.
+        Log critical information about the training process every 10 episodes
         """
+        log_path = os.path.join(self.output_dir, 'training_log.txt')
+        # Create the log file if it doesn't exist
+        if not os.path.exists(log_path):
+            with open(log_path, 'w') as f:
+                f.write('')  # Create an empty file
+
         with open(log_path, 'a') as f:
-            f.write(f"\n{'='*20} {model_name} Gradients at Update Step {update_step} {'='*20}\n")
-            for name, param in model.named_parameters():
+            f.write(f"\n{'='*20} Player {player_name} - Episode {episode} {'='*20}\n")
+            f.write(f"Actor Loss: {actor_loss.item():.6f}\n")
+            f.write(f"Value Loss: {value_loss.item():.6f}\n")
+            f.write(f"Surrogate Objective 1: {surrogate1.mean().item():.6f}\n")
+            f.write(f"Surrogate Objective 2: {surrogate2.mean().item():.6f}\n")
+            f.write(f"Ratio of Probabilities: {ratio.mean().item():.6f}\n")
+            f.write(f"Entropy: {entropy.mean().item():.6f}\n")
+            f.write(f"Total Loss: {total_loss.item():.6f}\n")
+            num_elements = 7  # Change this variable to adjust the number of elements printed
+            f.write(f"Advantages: {advantages[:num_elements].tolist()} ... {advantages[-num_elements:].tolist()}\n")
+            f.write(f"Returns: {returns.mean().item():.6f} (mean), {returns.std().item():.6f} (std)\n")
+            f.write("Actor Network:\n")
+            for name, param in self.actor.named_parameters():
+                f.write(f"{name}: mean={param.mean().item():.6f}, std={param.std().item():.6f}\n")
+            f.write("Critic Network:\n")
+            for name, param in self.critic.named_parameters():
+                f.write(f"{name}: mean={param.mean().item():.6f}, std={param.std().item():.6f}\n")
+            f.write("Actor Gradients:\n")
+            for name, param in self.actor.named_parameters():
                 if param.grad is not None:
-                    f.write(f"{name}: grad mean={param.grad.mean():.6f}, grad std={param.grad.std():.6f}, grad min={param.grad.min():.6f}, grad max={param.grad.max():.6f}\n")
+                    f.write(f"{name}: grad mean={param.grad.mean().item():.6f}, grad std={param.grad.std().item():.6f}\n")
+            f.write("Critic Gradients:\n")
+            for name, param in self.critic.named_parameters():
+                if param.grad is not None:
+                    f.write(f"{name}: grad mean={param.grad.mean().item():.6f}, grad std={param.grad.std().item():.6f}\n")
+            f.write("\n")
 
 def ppo_train(
         game_engine: Game,
@@ -262,7 +271,6 @@ def ppo_train(
     for episode in range(num_episodes):
         game_engine = Game()  # Reset the game state
         done = False
-        episode_rewards = [0, 0]
 
         # Initialize game history
         game_history = []
@@ -271,7 +279,6 @@ def ppo_train(
         cumulative_rewards = [0, 0]
 
         while not done:
-            print("collecting data")
             current_player = game_engine.current_player_turn
             agent = player1 if current_player == 0 else player2
             
@@ -310,13 +317,11 @@ def ppo_train(
             buffer['values'][current_player].append(value)
             buffer['dones'][current_player].append(done)
 
-             # Debugging: Print buffer lengths
-            print(f"Buffer lengths for player {current_player}: observations={len(buffer['observations'][current_player])}, actions={len(buffer['actions'][current_player])}, log_probs={len(buffer['log_probs'][current_player])}, rewards={len(buffer['rewards'][current_player])}, values={len(buffer['values'][current_player])}, dones={len(buffer['dones'][current_player])}")
-            # Game history length
-            print(f"Game history length: {len(game_history)}")
+            #  # Debugging: Print buffer lengths
+            # print(f"Buffer lengths for player {current_player}: observations={len(buffer['observations'][current_player])}, actions={len(buffer['actions'][current_player])}, log_probs={len(buffer['log_probs'][current_player])}, rewards={len(buffer['rewards'][current_player])}, values={len(buffer['values'][current_player])}, dones={len(buffer['dones'][current_player])}")
+            # # Game history length
+            # print(f"Game history length: {len(game_history)}")
 
-            
-            episode_rewards[current_player] += reward
             cumulative_rewards[current_player] += reward
 
         # # End of episode update
@@ -339,6 +344,8 @@ def ppo_train(
         # NOTE: I'm not sure if this is a problme because if the other player was dumb and just bought the last card, then assigning 
         # the reward to the other playe's last action doesn't feel right
         winner = game_engine.winner()
+        player_1_reward = 0
+        player_2_reward = 0
         if winner is not None:
             winner_index = 0 if winner.name == game_engine.players[0].name else 1
             # Update the last action of the winner in the game history and buffer
@@ -346,8 +353,10 @@ def ppo_train(
                 if game_history[i]['current_player_name'] == winner.name:
                     game_history[i]['reward'] = 1
                     buffer['rewards'][winner_index][-1] = 1
+                    player_1_reward, player_2_reward = (1, 0) if winner_index == 0 else (0, 1)
                     break
         else:
+            player_1_reward, player_2_reward = (0.2, 0.2)
             # Update the last action of both players in the game history and buffer
             for i in [0, 1]:
                 buffer['rewards'][i][-1] = 0.2
@@ -360,6 +369,7 @@ def ppo_train(
         for current_player in [0, 1]:
             agent = player1 if current_player == 0 else player2
             agent.update(
+                game_engine.players[current_player].name,
                 buffer['observations'][current_player],
                 buffer['actions'][current_player],
                 buffer['log_probs'][current_player],
@@ -368,7 +378,8 @@ def ppo_train(
                 buffer['dones'][current_player],
                 next_value=0, # Terminal state
                 epochs=update_epochs,
-                vectorizer=vectorizer
+                vectorizer=vectorizer,
+                episode=episode
             )
             buffer['observations'][current_player] = []
             buffer['actions'][current_player] = []
@@ -395,7 +406,7 @@ def ppo_train(
         #     else:
         #         buffer['rewards'][p][-1] = final_reward  # Correct the last reward if already appended
             
-        print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
+        print(f"Episode {episode + 1}, Rewards: Player 1 = {player_1_reward}, Player 2 = {player_2_reward}")
 
         # Save game history to CSV
         with open(os.path.join(output_dir, f"game_history_{episode+1}.csv"), "w", newline='') as f:
