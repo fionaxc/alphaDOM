@@ -61,10 +61,6 @@ class PlayerState:
         # Initialize list of valid actions
         valid_actions = []
 
-        # If the game is over, return empty list
-        if self.game.game_over:
-            return []
-
         # If in action phase, add playable action cards and end action phase action
         if self.game.current_phase == Phase.ACTION:
             valid_actions.extend([Action(self, ActionType.PLAY, card) for card in self.hand if card.is_action()])

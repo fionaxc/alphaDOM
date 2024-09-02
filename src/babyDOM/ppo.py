@@ -44,7 +44,6 @@ class PPOCritic(nn.Module):
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
         return self.critic(obs)
 
-
 class PPOAgent:
     def __init__(self, obs_dim: int, 
                  action_dim: int, 
@@ -169,6 +168,9 @@ class PPOAgent:
             # print("dist: ", dist)
             # print("actions: ", actions)
 
+            print("actions: ", actions.size(), epoch)
+            # Print out the actions array fully for debugging purposes
+            print("Actions array: ", actions.numpy())
             new_log_probs = dist.log_prob(actions)
             entropy = dist.entropy()    
 
@@ -197,6 +199,7 @@ class PPOAgent:
         advantages = torch.zeros_like(rewards)
         last_gae = 0
         # Compute a smoothed advantage estimate for each time step
+        print("what", range(len(rewards)), len(rewards))
         for t in reversed(range(len(rewards))):
             if t == len(rewards) - 1:
                 next_non_terminal = 1.0 - dones[t]
@@ -246,17 +249,20 @@ def ppo_train(
     # Create a directory for storing output files
     os.makedirs(output_dir, exist_ok=True)
 
+    # Initialize buffers
+    buffer = {
+        'observations': [[], []],
+        'actions': [[], []],
+        'log_probs': [[], []],
+        'rewards': [[], []],
+        'values': [[], []],
+        'dones': [[], []]
+    }
+
     for episode in range(num_episodes):
         game_engine = Game()  # Reset the game state
         done = False
         episode_rewards = [0, 0]
-        
-        observations = [[], []]
-        actions = [[], []]
-        log_probs = [[], []]
-        rewards = [[], []]
-        values = [[], []]
-        dones = [[], []]
 
         # Initialize game history
         game_history = []
@@ -265,6 +271,7 @@ def ppo_train(
         cumulative_rewards = [0, 0]
 
         while not done:
+            print("collecting data")
             current_player = game_engine.current_player_turn
             agent = player1 if current_player == 0 else player2
             
@@ -296,35 +303,21 @@ def ppo_train(
                 'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles'],
             })
             
-            observations[current_player].append(obs)
-            actions[current_player].append(vectorizer.vectorize_action(action))
-            log_probs[current_player].append(log_prob)
-            rewards[current_player].append(reward)
-            values[current_player].append(value)
-            dones[current_player].append(done)
+            buffer['observations'][current_player].append(obs)
+            buffer['actions'][current_player].append(vectorizer.vectorize_action(action))
+            buffer['log_probs'][current_player].append(log_prob)
+            buffer['rewards'][current_player].append(reward)
+            buffer['values'][current_player].append(value)
+            buffer['dones'][current_player].append(done)
+
+             # Debugging: Print buffer lengths
+            print(f"Buffer lengths for player {current_player}: observations={len(buffer['observations'][current_player])}, actions={len(buffer['actions'][current_player])}, log_probs={len(buffer['log_probs'][current_player])}, rewards={len(buffer['rewards'][current_player])}, values={len(buffer['values'][current_player])}, dones={len(buffer['dones'][current_player])}")
+            # Game history length
+            print(f"Game history length: {len(game_history)}")
+
             
             episode_rewards[current_player] += reward
             cumulative_rewards[current_player] += reward
-            
-            # Update the agent   
-            if len(observations[current_player]) >= batch_size:
-                agent.update(
-                    observations[current_player],
-                    actions[current_player],
-                    log_probs[current_player],
-                    rewards[current_player],
-                    values[current_player],
-                    dones[current_player],
-                    next_value=agent.get_value(obs),
-                    epochs=update_epochs,
-                    vectorizer=vectorizer
-                )
-                observations[current_player] = []
-                actions[current_player] = []
-                log_probs[current_player] = []
-                rewards[current_player] = []
-                values[current_player] = []
-                dones[current_player] = []
 
         # # End of episode update
         # for current_player in [0, 1]:
@@ -342,30 +335,65 @@ def ppo_train(
         #             vectorizer=vectorizer
         #         )
         
-        # Update the reward for the last action if the game is over
-        game_history[-1]['reward'] = reward
-        
-        # Determine the winner
+        # Since the game is over, update the reward for the game_history and the buffer reward of the winner's last action that was appended
+        # NOTE: I'm not sure if this is a problme because if the other player was dumb and just bought the last card, then assigning 
+        # the reward to the other playe's last action doesn't feel right
         winner = game_engine.winner()
-        winner_index = 0 if (winner and winner.name == game_engine.players[0].name) else 1
+        if winner is not None:
+            winner_index = 0 if winner.name == game_engine.players[0].name else 1
+            # Update the last action of the winner in the game history and buffer
+            for i in range(len(game_history) - 1, -1, -1):
+                if game_history[i]['current_player_name'] == winner.name:
+                    game_history[i]['reward'] = 1
+                    buffer['rewards'][winner_index][-1] = 1
+                    break
+        else:
+            # Update the last action of both players in the game history and buffer
+            for i in [0, 1]:
+                buffer['rewards'][i][-1] = 0.2
+                for j in range(len(game_history) - 1, -1, -1):
+                    if game_history[j]['current_player_name'] == game_engine.players[i].name:
+                        game_history[j]['reward'] = 0.2
+                        break
 
-        # Update data for both players
-        for p in [0, 1]:
-            final_obs = vectorizer.vectorize_observation(game_engine)
-            final_value = player1.get_value(final_obs) if p == 0 else player2.get_value(final_obs)
-            final_reward = player1.calculate_reward(game_engine, p, done) if p == 0 else player2.calculate_reward(game_engine, p, done)
-            
-            observations[p].append(final_obs)
-            values[p].append(final_value)
-            rewards[p].append(final_reward)
-            dones[p].append(True)
-            
-            # We don't append to actions and log_probs as no action was taken
-            # Don't append new reward for the winner, as it's already included
-            if p != winner_index:
-                final_reward = agent.calculate_reward(game_engine, p, done)
-                rewards[p].append(final_reward)
-                episode_rewards[p] += final_reward
+        # Update both players
+        for current_player in [0, 1]:
+            agent = player1 if current_player == 0 else player2
+            agent.update(
+                buffer['observations'][current_player],
+                buffer['actions'][current_player],
+                buffer['log_probs'][current_player],
+                buffer['rewards'][current_player],
+                buffer['values'][current_player],
+                buffer['dones'][current_player],
+                next_value=0, # Terminal state
+                epochs=update_epochs,
+                vectorizer=vectorizer
+            )
+            buffer['observations'][current_player] = []
+            buffer['actions'][current_player] = []
+            buffer['log_probs'][current_player] = []
+            buffer['rewards'][current_player] = []
+            buffer['values'][current_player] = []
+            buffer['dones'][current_player] = []
+
+        # # Update data for both players
+        # for p in [0, 1]:
+        #     final_obs = vectorizer.vectorize_observation(game_engine)
+        #     final_value = player1.get_value(final_obs) if p == 0 else player2.get_value(final_obs)
+        #     final_reward = player1.calculate_reward(game_engine, p, done) if p == 0 else player2.calculate_reward(game_engine, p, done)
+        #     
+        #     buffer['observations'][p].append(final_obs)
+        #     buffer['values'][p].append(final_value)
+        #     buffer['rewards'][p].append(final_reward)
+        #     buffer['dones'][p].append(True)
+        #     
+        #     # Ensure the final reward is included correctly
+        #     if len(buffer['rewards'][p]) < len(buffer['observations'][p]):
+        #         buffer['rewards'][p].append(final_reward)
+        #         episode_rewards[p] += final_reward
+        #     else:
+        #         buffer['rewards'][p][-1] = final_reward  # Correct the last reward if already appended
             
         print(f"Episode {episode + 1}, Rewards: Player 1 = {episode_rewards[0]}, Player 2 = {episode_rewards[1]}")
 
