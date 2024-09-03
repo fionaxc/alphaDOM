@@ -139,7 +139,14 @@ class PPOAgent:
         values = torch.FloatTensor(values)
         dones = torch.FloatTensor(dones)
 
-        returns, advantages = self.compute_gae(rewards, values, next_value, dones)
+        ##### GAE return implementation ######
+        # returns, advantages = self.compute_gae(rewards, values, next_value, dones)
+        # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
+        ### RTG return implementation ####
+        rtgs = self.compute_rtg(rewards)
+        returns = rtgs
+        advantages = rtgs - values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         for epoch in range(epochs):
@@ -179,16 +186,16 @@ class PPOAgent:
             if (episode + 1) % 10 == 0 and epoch == epochs - 1:
                 self.log_critical_info(player_name, episode + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, loss, advantages, returns)
 
-    def compute_returns(self, rewards: torch.Tensor, dones: torch.Tensor, next_value: torch.Tensor) -> torch.Tensor:
+    def compute_rtg(self, rewards: torch.Tensor) -> torch.Tensor:
         """
-        Compute the n step returns for the rewards using the discount factor gamma
+        Compute the return-to-go for the rewards using the discount factor gamma
         """
-        returns = torch.zeros_like(rewards)
-        running_return = next_value
+        rtgs = torch.zeros_like(rewards)
+        running_add = 0
         for t in reversed(range(len(rewards))):
-            running_return = rewards[t] + self.gamma * running_return * (1 - dones[t])
-            returns[t] = running_return
-        return returns
+            running_add = running_add * self.gamma + rewards[t]
+            rtgs[t] = running_add
+        return rtgs
     
     def compute_gae(self, rewards: torch.Tensor, values: torch.Tensor, next_value: torch.Tensor, 
                     dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:

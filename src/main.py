@@ -17,7 +17,7 @@ def parse_arguments():
 
 def __main__():
     args = parse_arguments()
-    args.run_id = "0831_run1_episodes{}".format(args.num_episodes)
+    args.run_id = "0902_run1_episodes{}".format(args.num_episodes)
 
     # Initialize the game engine
     game_engine = Game()
