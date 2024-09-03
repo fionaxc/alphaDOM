@@ -6,7 +6,7 @@ import numpy as np
 from typing import List, Tuple
 from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
-from game_engine.action import Action
+from game_engine.action import Action, ActionType
 from .utils import convert_action_probs_to_readable
 import os
 import csv
@@ -107,7 +107,7 @@ class PPOAgent:
         obs = torch.FloatTensor(obs)
         return self.critic(obs).item()
     
-    def calculate_reward(self, game_engine: Game, current_player: int, done: bool) -> int:
+    def calculate_reward(self, game_engine: Game, current_player: int, done: bool, action: Action) -> int:
         """
         Calculate the reward for the current player.
         
@@ -119,15 +119,19 @@ class PPOAgent:
         Returns:
             float: The calculated reward.
         """
-        # Winning reward
-        if done and game_engine.winner() is not None and game_engine.winner().name == game_engine.players[current_player].name: 
-            return 1
-        # Tie reward
-        elif done and game_engine.winner() is None: 
-            return 0.2
-        # Losing or continuing reward
-        else:
-            return 0
+        if action.action_type == ActionType.BUY and (action.card.is_victory() or action.card.is_curse()):
+            return action.card.victory_points / 50
+        return 0
+        
+        # # Winning reward
+        # if done and game_engine.winner() is not None and game_engine.winner().name == game_engine.players[current_player].name: 
+        #     return 1
+        # # Tie reward
+        # elif done and game_engine.winner() is None: 
+        #     return 0.2
+        # # Losing or continuing reward
+        # else:
+        #     return 0
 
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
@@ -296,7 +300,7 @@ def ppo_train(
         game_history = []
 
         # Initialize variables for tracking game state
-        cumulative_rewards = [0, 0]
+        cumulative_rewards_after_action = [0, 0]
 
         while not done:
             current_player = game_engine.current_player_turn
@@ -307,21 +311,16 @@ def ppo_train(
             action, log_prob, probs = agent.get_action(obs, game_engine, vectorizer)
             value = agent.get_value(obs)
 
-            action.apply()
-
-            done = game_engine.game_over
-            reward = agent.calculate_reward(game_engine, current_player, done)
-
             game_engine_observation_state_copy = copy.deepcopy(game_engine.get_observation_state())
 
             # Log the game state after the action and reward calculation
             game_history.append({
                 'episode': episode + 1,
                 'game_over': game_engine_observation_state_copy['game_state']['game_over'],
-                'reward': reward,
-                'cumulative_reward': cumulative_rewards[current_player],
+                'reward': 0,
+                'cumulative_rewards_after_action': 0,
                 'current_turns': game_engine_observation_state_copy['game_state']['turn_number'],
-                'after_doing_action': str(action),
+                'from_state_chose_action': str(action),
                 'action_probs': convert_action_probs_to_readable(probs, vectorizer, game_engine),
                 'current_player_name': game_engine_observation_state_copy['game_state']['current_player_name'],
                 'current_phase': game_engine_observation_state_copy['game_state']['current_phase'],
@@ -329,6 +328,15 @@ def ppo_train(
                 'opponent_state': game_engine_observation_state_copy['opponent_state'],
                 'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles'],
             })
+
+            action.apply()
+
+            done = game_engine.game_over
+            reward = agent.calculate_reward(game_engine, current_player, done, action)
+            cumulative_rewards_after_action[current_player] += reward
+
+            game_history[-1]['reward'] = reward
+            game_history[-1]['cumulative_rewards_after_action'] = cumulative_rewards_after_action[current_player]
             
             buffer['observations'][current_player].append(obs)
             buffer['actions'][current_player].append(vectorizer.vectorize_action(action))
@@ -341,8 +349,6 @@ def ppo_train(
             # print(f"Buffer lengths for player {current_player}: observations={len(buffer['observations'][current_player])}, actions={len(buffer['actions'][current_player])}, log_probs={len(buffer['log_probs'][current_player])}, rewards={len(buffer['rewards'][current_player])}, values={len(buffer['values'][current_player])}, dones={len(buffer['dones'][current_player])}")
             # # Game history length
             # print(f"Game history length: {len(game_history)}")
-
-            cumulative_rewards[current_player] += reward
 
         # # End of episode update
         # for current_player in [0, 1]:
@@ -371,6 +377,7 @@ def ppo_train(
             # Update the last action of the winner in the game history and buffer
             for i in range(len(game_history) - 1, -1, -1):
                 if game_history[i]['current_player_name'] == winner.name:
+                    game_history[i]['cumulative_rewards_after_action'] += 1 - game_history[i]['reward']
                     game_history[i]['reward'] = 1
                     buffer['rewards'][winner_index][-1] = 1
                     player_1_reward, player_2_reward = (1, 0) if winner_index == 0 else (0, 1)
@@ -382,6 +389,7 @@ def ppo_train(
                 buffer['rewards'][i][-1] = 0.2
                 for j in range(len(game_history) - 1, -1, -1):
                     if game_history[j]['current_player_name'] == game_engine.players[i].name:
+                        game_history[j]['cumulative_rewards_after_action'] += 0.2 - game_history[j]['reward']
                         game_history[j]['reward'] = 0.2
                         break
 
