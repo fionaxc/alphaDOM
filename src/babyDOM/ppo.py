@@ -9,21 +9,21 @@ from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action, ActionType
 import os
 from .utils import stable_softmax
+import torch.nn.functional as F
 
 class PPOActor(nn.Module):
-    def __init__(self, input_size: int, output_size: int, hidden_size: int):
+    def __init__(self, input_size, output_size, hidden_size):
         super().__init__()
         self.actor = nn.Sequential(
             nn.Linear(input_size, hidden_size),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, output_size),
-            nn.Softmax(dim=-1) 
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, output_size)
         )
     
-    def forward(self, obs: torch.Tensor) -> torch.Tensor:
-        return self.actor(obs)
+    def forward(self, obs):
+        return F.softmax(self.actor(obs), dim=-1)
 
 
 class PPOCritic(nn.Module):
@@ -135,15 +135,15 @@ class PPOAgent:
         values = torch.FloatTensor(values)
         dones = torch.FloatTensor(dones)
 
-        ##### GAE return implementation ######
-        # returns, advantages = self.compute_gae(rewards, values, next_value, dones)
-        # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-
-        ### RTG return implementation ####
-        rtgs = self.compute_rtg(rewards)
-        returns = rtgs
-        advantages = rtgs - values
+        #### GAE return implementation ######
+        returns, advantages = self.compute_gae(rewards, values, next_value, dones)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
+        # ### RTG return implementation ####
+        # rtgs = self.compute_rtg(rewards)
+        # returns = rtgs
+        # advantages = rtgs - values
+        # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         for epoch in range(epochs):
             new_logits = self.actor(observations)
@@ -172,10 +172,13 @@ class PPOAgent:
 
             loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
 
+            # Actor Loss Step
             self.actor_optimizer.zero_grad()
-            self.critic_optimizer.zero_grad()
-            loss.backward()
+            actor_loss.backward(retain_graph=True)
             self.actor_optimizer.step()
+            # Critic Loss Step
+            self.critic_optimizer.zero_grad()
+            value_loss.backward()
             self.critic_optimizer.step()
 
             # Log critical information every 10 episodes
