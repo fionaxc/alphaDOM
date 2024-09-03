@@ -34,6 +34,9 @@ class Card:
 
     def is_victory(self):
         return self.is_type(CardType.VICTORY)
+    
+    def is_curse(self):
+        return self.is_type(CardType.CURSE)
 
     def is_treasure(self):
         return self.is_type(CardType.TREASURE)
