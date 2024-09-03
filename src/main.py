@@ -1,6 +1,6 @@
 import os
 import argparse
-from babyDOM.ppo import ppo_train
+from babyDOM.train import ppo_train
 from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 from utils import save_params_to_csv
