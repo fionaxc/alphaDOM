@@ -29,7 +29,7 @@ def __main__():
     output_dir = os.path.join(os.path.dirname(__file__), 'output', args.run_id)
     os.makedirs(output_dir, exist_ok=True)
 
-    trained_agent1, trained_agent2 = ppo_train(
+    trained_agent = ppo_train(
         game_engine=game_engine,
         vectorizer=vectorizer,
         run_id=args.run_id,
@@ -49,8 +49,7 @@ def __main__():
     print(f"Training parameters saved to {params_file}")
 
     # Save the trained agents
-    torch.save(trained_agent1, os.path.join(output_dir, "trained_agent1.pth"))
-    torch.save(trained_agent2, os.path.join(output_dir, "trained_agent2.pth"))
+    torch.save(trained_agent, os.path.join(output_dir, "trained_agent.pth"))
 
 if __name__ == "__main__":
     __main__()
