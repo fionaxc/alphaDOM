@@ -178,6 +178,17 @@ class PPOAgent:
             # Log critical information every 10 episodes
             if (episode + 1) % 10 == 0 and epoch == epochs - 1:
                 self.log_critical_info(player_name, episode + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, loss, advantages, returns)
+
+    def compute_returns(self, rewards: torch.Tensor, dones: torch.Tensor, next_value: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the n step returns for the rewards using the discount factor gamma
+        """
+        returns = torch.zeros_like(rewards)
+        running_return = next_value
+        for t in reversed(range(len(rewards))):
+            running_return = rewards[t] + self.gamma * running_return * (1 - dones[t])
+            returns[t] = running_return
+        return returns
     
     def compute_gae(self, rewards: torch.Tensor, values: torch.Tensor, next_value: torch.Tensor, 
                     dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
