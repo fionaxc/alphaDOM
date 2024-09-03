@@ -161,8 +161,8 @@ class PlayerState:
             # Move to cleanup phase, clean up cards, and then go to next player with reset turn state
             self.game.next_phase()
             self.cleanup_cards()
-            self.game.next_phase()
             self.game.next_player()
+            self.game.next_phase()
 
     def __str__(self):
         return 'PlayerState(actions={}, buys={}, coins={}, draw_pile={}, hand={}, played_cards={}, discard_pile={})'.format(

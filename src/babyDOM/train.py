@@ -7,6 +7,7 @@ from .utils import convert_action_probs_to_readable
 import os
 import csv
 import copy
+from tqdm import tqdm
 
 def ppo_train(
         game_engine: Game,
@@ -21,27 +22,25 @@ def ppo_train(
     
     obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
-    player1 = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
-    player2 = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
+    agent = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
     
     # Create a directory for storing output files
     os.makedirs(output_dir, exist_ok=True)
 
     # Log initial critical information
-    player1.log_critical_info("Player 1", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
-    player2.log_critical_info("Player 2", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
+    agent.log_critical_info("Base Agent", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
 
-    # Initialize buffers
-    buffer = {
-        'observations': [[], []],
-        'actions': [[], []],
-        'log_probs': [[], []],
-        'rewards': [[], []],
-        'values': [[], []],
-        'dones': [[], []]
-    }
+    for episode in tqdm(range(num_episodes)):
+        # Initialize new buffers to store experiences of a rollout
+        buffer = {
+            'observations': [[], []],
+            'actions': [[], []],
+            'log_probs': [[], []],
+            'rewards': [[], []],
+            'values': [[], []],
+            'dones': [[], []]
+        }
 
-    for episode in range(num_episodes):
         game_engine = Game()  # Reset the game state
         done = False
 
@@ -53,7 +52,6 @@ def ppo_train(
 
         while not done:
             current_player = game_engine.current_player_turn
-            agent = player1 if current_player == 0 else player2
             
             obs = vectorizer.vectorize_observation(game_engine)
             
@@ -122,30 +120,21 @@ def ppo_train(
                         game_history[j]['reward'] = 0.2
                         break
 
-        # Update policies for both players
-        for current_player in [0, 1]:
-            agent = player1 if current_player == 0 else player2
-            agent.update(
-                game_engine.players[current_player].name,
-                buffer['observations'][current_player],
-                buffer['actions'][current_player],
-                buffer['log_probs'][current_player],
-                buffer['rewards'][current_player],
-                buffer['values'][current_player],
-                buffer['dones'][current_player],
-                next_value=0, # Terminal state
-                epochs=update_epochs,
-                vectorizer=vectorizer,
-                episode=episode
-            )
-            buffer['observations'][current_player] = []
-            buffer['actions'][current_player] = []
-            buffer['log_probs'][current_player] = []
-            buffer['rewards'][current_player] = []
-            buffer['values'][current_player] = []
-            buffer['dones'][current_player] = []
-            
-        print(f"Episode {episode + 1}, Rewards: Player 1 = {player_1_reward}, Player 2 = {player_2_reward}")
+        # Update policy using the combined experience from both players
+        combined_buffer = {key: buffer[key][0] + buffer[key][1] for key in buffer}
+        agent.update(
+            "Base Agent",
+            combined_buffer['observations'],
+            combined_buffer['actions'],
+            combined_buffer['log_probs'],
+            combined_buffer['rewards'],
+            combined_buffer['values'],
+            combined_buffer['dones'],
+            next_value=0, # Terminal state
+            epochs=update_epochs,
+            vectorizer=vectorizer,
+            episode=episode
+        )
 
         # Save game history to CSV
         with open(os.path.join(output_dir, f"game_history_{episode+1}.csv"), "w", newline='') as f:
@@ -157,4 +146,4 @@ def ppo_train(
         # Reset game history for the next episode
         game_history = []
 
-    return player1, player2
+    return agent

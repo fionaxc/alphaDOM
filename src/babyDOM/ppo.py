@@ -7,12 +7,8 @@ from typing import List, Tuple
 from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 from game_engine.action import Action, ActionType
-from .utils import convert_action_probs_to_readable
 import os
-import csv
-import copy
 from .utils import stable_softmax
-import logging
 
 class PPOActor(nn.Module):
     def __init__(self, input_size: int, output_size: int, hidden_size: int):

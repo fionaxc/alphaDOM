@@ -1,5 +1,6 @@
 import random
 from game_engine.cards.card_instances import CARD_MAP, SUPPLY_CARD_LIMITS
+from game_engine.action import ActionType
 from .player import PlayerState
 from .phase import Phase
 
@@ -134,6 +135,15 @@ class Game:
         phases = list(Phase)
         current_index = phases.index(self.current_phase)
         self.current_phase = phases[(current_index + 1) % len(phases)]
+
+        # Check if the current phase is the action phase
+        if self.current_phase == Phase.ACTION:
+            # Get the current player's valid actions
+            valid_actions = self.current_player().get_valid_actions()
+            
+            # If the only valid action is to end the action phase, then do that
+            if len(valid_actions) == 1 and valid_actions[0].action_type == ActionType.END_ACTION:
+                self.current_player().end_action_phase()
 
     def next_player(self):
         # Before moving to next player, check if the game is over (no provinces, or at least 3 empty supply piles)
