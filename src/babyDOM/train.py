@@ -97,8 +97,8 @@ def ppo_train(
         # NOTE: I'm not sure if this is a problme because if the other player was dumb and just bought the last card, then assigning 
         # the reward to the other playe's last action doesn't feel right
         winner = game_engine.winner()
-        player_1_reward = 0
-        player_2_reward = 0
+        # player_1_reward = 0
+        # player_2_reward = 0
         if winner is not None:
             winner_index = 0 if winner.name == game_engine.players[0].name else 1
             # Update the last action of the winner in the game history and buffer
@@ -107,10 +107,10 @@ def ppo_train(
                     game_history[i]['cumulative_rewards_after_action'] += 1 - game_history[i]['reward']
                     game_history[i]['reward'] = 1
                     buffer['rewards'][winner_index][-1] = 1
-                    player_1_reward, player_2_reward = (1, 0) if winner_index == 0 else (0, 1)
+                    # player_1_reward, player_2_reward = (1, 0) if winner_index == 0 else (0, 1)
                     break
         else:
-            player_1_reward, player_2_reward = (0.2, 0.2)
+            # player_1_reward, player_2_reward = (0.2, 0.2)
             # Update the last action of both players in the game history and buffer
             for i in [0, 1]:
                 buffer['rewards'][i][-1] = 0.2
