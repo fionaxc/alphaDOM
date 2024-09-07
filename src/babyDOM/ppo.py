@@ -94,7 +94,7 @@ class PPOAgent:
 
         action_index = m.sample()
         selected_action = vectorizer.devectorize_action(action_index.item(), game.current_player())
-        return selected_action, m.log_prob(action_index).item(), probs
+        return selected_action, m.log_prob(action_index).item(), probs.detach()
 
     def get_value(self, obs: np.ndarray) -> float:
         """
@@ -134,9 +134,10 @@ class PPOAgent:
         rewards = torch.FloatTensor(rewards)
         values = torch.FloatTensor(values)
         dones = torch.FloatTensor(dones)
+        next_value = torch.FloatTensor([next_value])
 
         #### GAE return implementation ######
-        returns, advantages = self.compute_gae(rewards, values, next_value, dones)
+        returns, advantages = self.compute_gae(rewards, values.detach(), next_value.detach(), dones)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         # ### RTG return implementation ####
@@ -163,12 +164,12 @@ class PPOAgent:
             new_log_probs = dist.log_prob(actions)
             entropy = dist.entropy()    
 
-            ratio = torch.exp(new_log_probs - old_log_probs)
+            ratio = torch.exp(new_log_probs - old_log_probs.detach())
             surrogate1 = ratio * advantages
             surrogate2 = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * advantages
             actor_loss = -torch.min(surrogate1, surrogate2).mean()
 
-            value_loss = nn.MSELoss()(new_values, returns)
+            value_loss = nn.MSELoss()(new_values, returns.detach())
 
             loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
 
@@ -198,6 +199,9 @@ class PPOAgent:
     
     def compute_gae(self, rewards: torch.Tensor, values: torch.Tensor, next_value: torch.Tensor, 
                     dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Compute the Generalized Advantage Estimation (GAE) for the rewards.
+        """
         advantages = torch.zeros_like(rewards)
         last_gae = 0
         # Compute a smoothed advantage estimate for each time step
