@@ -64,18 +64,18 @@ python3 -m unittest discover -s tests
 
 The script accepts the following command-line arguments:
 
-| Argument          | Type | Default       | Description                       |
-| ----------------- | ---- | ------------- | --------------------------------- |
-| `--num_episodes`  | int  | 100           | Number of episodes to train       |
-| `--batch_size`    | int  | 32            | Batch size for training           |
-| `--update_epochs` | int  | 10            | Number of epochs for each update  |
-| `--hidden_size`   | int  | 64            | Hidden size of the neural network |
-| `--run_id`        | str  | "default_run" | Unique identifier for this run    |
+| Argument          | Type | Default       | Description                        |
+| ----------------- | ---- | ------------- | ---------------------------------- |
+| `--num_games`     | int  | 100           | Number of games to train           |
+| `--batch_size`    | int  | 32            | Batch size (in games) for training |
+| `--update_epochs` | int  | 10            | Number of epochs for each update   |
+| `--hidden_size`   | int  | 64            | Hidden size of the neural network  |
+| `--run_id`        | str  | "default_run" | Unique identifier for this run     |
 
 Example:
 
 ```bash
-python3 main.py --num_episodes 200 --batch_size 64 --run_id my_custom_run
+python3 main.py --num_games 200 --batch_size 64 --run_id my_custom_run
 ```
 
 This will start the training process using the specified parameters. The script will:

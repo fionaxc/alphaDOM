@@ -8,16 +8,16 @@ import torch
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Train a Dominion AI agent using PPO")
-    parser.add_argument("--num_episodes", type=int, default=10, help="Number of episodes to train")
-    parser.add_argument("--batch_size", type=int, default=256, help="Batch size for training")
-    parser.add_argument("--update_epochs", type=int, default=10, help="Number of epochs for each update")
+    parser.add_argument("--num_games", type=int, default=2000, help="Number of games to train")
+    parser.add_argument("--batch_size", type=int, default=50, help="Batch size for training (number of games)")
+    parser.add_argument("--update_epochs", type=int, default=5, help="Number of epochs for each update")
     parser.add_argument("--hidden_size", type=int, default=64, help="Hidden size of the neural network")
     parser.add_argument("--run_id", type=str, default="default_run", help="Unique identifier for this run")
     return parser.parse_args()
 
 def __main__():
     args = parse_arguments()
-    args.run_id = "0902_run1_gae_separateloss_episodes{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_episodes, args.batch_size, args.update_epochs, args.hidden_size)
+    args.run_id = "0902_run1_gae_separateloss_games{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_games, args.batch_size, args.update_epochs, args.hidden_size)
 
     # Initialize the game engine
     game_engine = Game()
@@ -34,7 +34,7 @@ def __main__():
         vectorizer=vectorizer,
         run_id=args.run_id,
         output_dir=output_dir,
-        num_episodes=args.num_episodes,
+        num_games=args.num_games,
         batch_size=args.batch_size,
         update_epochs=args.update_epochs,
         hidden_size=args.hidden_size,

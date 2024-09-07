@@ -45,7 +45,7 @@ class PPOAgent:
                  action_dim: int, 
                  hidden_size: int, 
                  lr: float = 1e-4, 
-                 gamma: float = 0.99, 
+                 gamma: float = 0.95, 
                  epsilon: float = 0.2, 
                  value_coef: float = 0.5, 
                  entropy_coef: float = 0.01, 
@@ -127,7 +127,7 @@ class PPOAgent:
 
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
-               epochs: int, vectorizer: DominionVectorizer, episode: int = 0):
+               epochs: int, vectorizer: DominionVectorizer, game: int = 0):
         observations = torch.FloatTensor(np.array(observations))
         actions = torch.LongTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
@@ -182,9 +182,9 @@ class PPOAgent:
             value_loss.backward()
             self.critic_optimizer.step()
 
-            # Log critical information every 10 episodes
-            if (episode + 1) % 10 == 0 and epoch == epochs - 1:
-                self.log_critical_info(player_name, episode + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, loss, advantages, returns)
+            # Log critical information every last gradient step
+            if epoch == epochs - 1:
+                self.log_critical_info(player_name, game + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, loss, advantages, returns)
 
     def compute_rtg(self, rewards: torch.Tensor) -> torch.Tensor:
         """
@@ -220,11 +220,11 @@ class PPOAgent:
         returns = advantages + values
         return returns, advantages
     
-    def log_critical_info(self, player_name: str, episode: int, actor_loss: torch.Tensor, value_loss: torch.Tensor, 
+    def log_critical_info(self, player_name: str, game: int, actor_loss: torch.Tensor, value_loss: torch.Tensor, 
                           surrogate1: torch.Tensor, surrogate2: torch.Tensor, ratio: torch.Tensor, 
                           entropy: torch.Tensor, total_loss: torch.Tensor, advantages: torch.Tensor, returns: torch.Tensor):
         """
-        Log critical information about the training process every 10 episodes
+        Log critical information about the training process every 10 games
         """
         log_path = os.path.join(self.output_dir, 'training_log.txt')
         # Create the log file if it doesn't exist
@@ -233,7 +233,7 @@ class PPOAgent:
                 f.write('')  # Create an empty file
 
         with open(log_path, 'a') as f:
-            f.write(f"\n{'='*20} Player {player_name} - Episode {episode} {'='*20}\n")
+            f.write(f"\n{'='*20} Player {player_name} - Game {game} {'='*20}\n")
             f.write(f"Actor Loss: {actor_loss.item():.6f}\n")
             f.write(f"Value Loss: {value_loss.item():.6f}\n")
             f.write(f"Surrogate Objective 1: {surrogate1}\n")
