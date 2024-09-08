@@ -9,6 +9,16 @@ import csv
 import copy
 from tqdm import tqdm
 import logging
+from multiprocessing import Pool
+import time
+
+def save_game_history(output_dir: str, game_id: int, game_history: list):
+    """Save game history to a CSV file."""
+    with open(os.path.join(output_dir, f"game_history_{game_id}.csv"), "w", newline='') as f:
+        fieldnames = list(game_history[0].keys())
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(game_history)
 
 def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent, game_id: int):
     # Initialize new buffer to store experiences of one rollout
@@ -42,7 +52,7 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
 
         # Log the game state before we take an action
         game_history.append({
-            'game': game_id + 1,
+            'game': game_id,
             'game_over': game_engine_observation_state_copy['game_state']['game_over'],
             'reward': 0,
             'cumulative_rewards_after_action': 0,
@@ -94,38 +104,82 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
                     game_history[j]['reward'] = 0.2
                     break
 
-    return buffer, game_history
+    return game_id, buffer, game_history
 
-def ppo_train(
-        game_engine: Game,
-        vectorizer: DominionVectorizer,
-        run_id: str,
-        output_dir: str,
-        num_games: int,
-        batch_size: int,
-        update_epochs: int,
-        hidden_size: int,
-) -> PPOAgent:
-    obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
-    action_dim = vectorizer.action_space_size
-    agent = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
-    
-    # Create a directory for storing output files
-    os.makedirs(output_dir, exist_ok=True)
+def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent, num_games: int, batch_size: int, update_epochs: int, output_dir: str):
+    # Initialize buffer for batch updates
+    batch_buffer = {
+        'observations': [[], []],
+        'actions': [[], []],
+        'log_probs': [[], []],
+        'rewards': [[], []],
+        'values': [[], []],
+        'dones': [[], []]
+    }
 
-    # Configure logging to write to a file in the output directory
-    log_file_path = os.path.join(output_dir, 'batch_sizes.txt')
-    logging.basicConfig(
-        level=logging.INFO,  # Set the logging level to INFO
-        format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
-        handlers=[
-            logging.FileHandler(log_file_path)  # Save to a file in the output directory
-        ]
-    )
+    with Pool() as pool:
+        with tqdm(total=num_games) as pbar:
+            game_counter = 1  # Initialize game counter
+            while game_counter < num_games:
+                start_time = time.time()
 
-    # Log initial critical information
-    agent.log_critical_info("Base Agent", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
+                # Submit batch_size games to be played in parallel
+                results = pool.starmap(play_game, [(game_engine, vectorizer, agent, game_counter + i) for i in range(batch_size)])
+                
+                # Collect results and update progress bar
+                for result in results:
+                    pbar.update(1)
+                    game_counter += 1
 
+                # Sort results by game_id to ensure correct order
+                results.sort(key=lambda x: x[0])
+
+                # Save game histories in parallel
+                save_futures = [pool.apply_async(save_game_history, (output_dir, game_id, game_history)) for game_id, _, game_history in results]
+                for future in save_futures:
+                    future.get()  # Ensure all save operations complete
+
+                for game_id, buffer, game_history in results:
+                    # Append current game's buffer to batch buffer
+                    for key in buffer:
+                        batch_buffer[key][0].extend(buffer[key][0])
+                        batch_buffer[key][1].extend(buffer[key][1])
+
+                # Log the sizes of the arrays in the batch buffer before update
+                logging.info(f"Batch buffer sizes before update: " +
+                             f"observations: {len(batch_buffer['observations'][0]) + len(batch_buffer['observations'][1])}, " +
+                             f"actions: {len(batch_buffer['actions'][0]) + len(batch_buffer['actions'][1])}, " +
+                             f"log_probs: {len(batch_buffer['log_probs'][0]) + len(batch_buffer['log_probs'][1])}, " +
+                             f"rewards: {len(batch_buffer['rewards'][0]) + len(batch_buffer['rewards'][1])}, " +
+                             f"values: {len(batch_buffer['values'][0]) + len(batch_buffer['values'][1])}, " +
+                             f"dones: {len(batch_buffer['dones'][0]) + len(batch_buffer['dones'][1])}")
+
+                # Combine buffers from all games in the batch
+                combined_buffer = {key: batch_buffer[key][0] + batch_buffer[key][1] for key in batch_buffer}
+                
+                # Perform the update with the combined buffer
+                agent.update(
+                    "Base Agent",
+                    combined_buffer['observations'],
+                    combined_buffer['actions'],
+                    combined_buffer['log_probs'],
+                    combined_buffer['rewards'],
+                    combined_buffer['values'],
+                    combined_buffer['dones'],
+                    next_value=0,  # Terminal state
+                    epochs=update_epochs,
+                    vectorizer=vectorizer,
+                    game=len(batch_buffer['observations'][0]) + len(batch_buffer['observations'][1])
+                )
+                
+                # Clear batch buffer after update
+                batch_buffer = {key: [[], []] for key in batch_buffer}
+                
+                end_time = time.time()
+                batch_duration = end_time - start_time
+                logging.info(f"Batch update duration: {batch_duration:.2f} seconds")
+
+def run_all_games_sequentially(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent, num_games: int, batch_size: int, update_epochs: int, output_dir: str):
     # Initialize buffer for batch updates
     batch_buffer = {
         'observations': [[], []],
@@ -137,8 +191,12 @@ def ppo_train(
     }
 
     for game in tqdm(range(num_games)):
+        # Start timing the entire process for the batch
+        if game % batch_size == 0:
+            batch_start_time = time.time()
+
         # Play a game to get one rollout
-        buffer, game_history = play_game(game_engine, vectorizer, agent, game)
+        game_id, buffer, game_history = play_game(game_engine, vectorizer, agent, game)
         
          # Append current game's buffer to batch buffer
         for key in buffer:
@@ -173,14 +231,48 @@ def ppo_train(
             # Clear batch buffer after update
             batch_buffer = {key: [[], []] for key in batch_buffer}
 
-        # Save game history to CSV
-        with open(os.path.join(output_dir, f"game_history_{game+1}.csv"), "w", newline='') as f:
-            fieldnames = list(game_history[0].keys())
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(game_history)
+        save_game_history(output_dir, game + 1, game_history)
+
+        # End timing the entire process for the batch
+        if (game + 1) % batch_size == 0:
+            batch_end_time = time.time()
+            batch_duration = batch_end_time - batch_start_time
+            logging.info(f"Batch update duration: {batch_duration:.2f} seconds")
 
         # Reset game history for the next game
         game_history = []
+
+def ppo_train(
+        game_engine: Game,
+        vectorizer: DominionVectorizer,
+        run_id: str,
+        output_dir: str,
+        num_games: int,
+        batch_size: int,
+        update_epochs: int,
+        hidden_size: int,
+) -> PPOAgent:
+    obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
+    action_dim = vectorizer.action_space_size
+    agent = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
+    
+    # Create a directory for storing output files
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Configure logging to write to a file in the output directory
+    log_file_path = os.path.join(output_dir, 'batch_sizes.txt')
+    logging.basicConfig(
+        level=logging.INFO,  # Set the logging level to INFO
+        format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
+        handlers=[
+            logging.FileHandler(log_file_path)  # Save to a file in the output directory
+        ]
+    )
+
+    # Log initial critical information
+    agent.log_critical_info("Base Agent", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
+
+    # run_all_games_sequentially(game_engine, vectorizer, agent, num_games, batch_size, update_epochs, output_dir)
+    run_all_games_in_parallel(game_engine, vectorizer, agent, num_games, batch_size, update_epochs, output_dir)
 
     return agent
