@@ -169,7 +169,7 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                     next_value=0,  # Terminal state
                     epochs=update_epochs,
                     vectorizer=vectorizer,
-                    game=len(batch_buffer['observations'][0]) + len(batch_buffer['observations'][1])
+                    game=game_counter - 1 # -1 because we increment game_counter before using it
                 )
                 
                 # Clear batch buffer after update
