@@ -5,6 +5,7 @@ from game_engine.action import Action, ActionType
 from game_engine.cards.card import Card
 from game_engine.cards.card_instances import CARD_MAP
 from game_engine.phase import Phase
+from game_engine.cards.card_instances import SUPPLY_CARD_LIMITS
 
 class DominionVectorizer:
     def __init__(self, card_types: List[str]):
@@ -18,6 +19,7 @@ class DominionVectorizer:
         """
         Converts the game state into a vector representation. The resulting vector has the following components (let n = len(card_types)):
 
+        Each card is a count of how many of that card are in the hand -> normalized to 0 - 1.
         - Vectors where information is a list (because we know the exact order of cards, but that's not used yet)
             - Hand cards (n)
             - Played cards (n)
@@ -30,10 +32,12 @@ class DominionVectorizer:
             - Current phase (1 element)
             - # of actions (1 element)
             - # of buys (1 element)
-            - # of coins (1 element)
+            - # of coins (1 element) — log normalized
+            - Current player's victory points (1 element) — normalized by dividing by the max possible VPs
+            - Opponent's victory points (1 element) — normalized by dividing by the max possible VPs
             - Game over (1 element)
 
-        Total vector length: 6 * n + 5
+        Total vector length: 6 * n + 7
         """
         observation = game.get_observation_state()
         current_player = observation['current_player_state']
@@ -55,9 +59,9 @@ class DominionVectorizer:
             phase_encoding, # What phase of the game are we in?
             current_player['actions'], # How many actions does the current player have left?
             current_player['buys'], # How many buys does the current player have left?
-            current_player['coins'], # How many coins does the current player have?
-            current_player['victory_points'], # How many victory points does the current player have?
-            opponent['victory_points'], # How many victory points does the opponent have?
+            np.log(current_player['coins'] + 1), # How many coins does the current player have?
+            current_player['victory_points'] / game.get_maximum_possible_vp(), # How many victory points does the current player have?
+            opponent['victory_points'] / game.get_maximum_possible_vp(), # How many victory points does the opponent have?
             1 if game_state['game_over'] else 0 # Is the game over?
         ], dtype=np.float32)
 
@@ -67,16 +71,22 @@ class DominionVectorizer:
     def _vectorize_cards(self, cards: Union[Dict[str, int], List[Card]]) -> np.ndarray:
         """
         Converts a list or dictionary of cards into a vector where each card has a count.
+        Normalized to 0 - 1 based on the max supply count defined in SUPPLY_CARD_LIMITS.
         """
         vector = np.zeros(len(self.card_types), dtype=np.float32)
         if isinstance(cards, dict):
             for card_name, count in cards.items():
                 if card_name in self.card_types:
-                    vector[self.card_types.index(card_name)] = count
+                    max_count = SUPPLY_CARD_LIMITS.get(card_name, 1)  # Get max supply count, default to 1 if not found
+                    vector[self.card_types.index(card_name)] = count / max_count
         elif isinstance(cards, list):
+            card_counts = {card.name: 0 for card in cards if card.name in self.card_types}
             for card in cards:
                 if card.name in self.card_types:
-                    vector[self.card_types.index(card.name)] += 1
+                    card_counts[card.name] += 1
+            for card_name, count in card_counts.items():
+                max_count = SUPPLY_CARD_LIMITS.get(card_name, 1)  # Get max supply count, default to 1 if not found
+                vector[self.card_types.index(card_name)] = count / max_count
         return vector
 
     def vectorize_action(self, action: Action) -> int:

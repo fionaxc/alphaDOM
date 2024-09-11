@@ -121,9 +121,12 @@ class PPOAgent:
         # Tie reward
         elif done and game_engine.winner() is None: 
             return 0.2
-        # Losing or continuing reward
+        # Losing reward
+        elif done and game_engine.winner() is not None and game_engine.winner().name != game_engine.players[current_player].name:
+            return -1
+        # Continuing reward
         else:
-            return action.card.victory_points / 50 if action.action_type == ActionType.BUY and (action.card.is_victory() or action.card.is_curse()) else 0
+            return action.card.victory_points / game_engine.get_maximum_possible_vp() if action.action_type == ActionType.BUY and (action.card.is_victory() or action.card.is_curse()) else 0
 
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], next_value: float, 

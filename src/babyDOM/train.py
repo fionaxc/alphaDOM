@@ -59,6 +59,7 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
             'current_turns': game_engine_observation_state_copy['game_state']['turn_number'],
             'from_state_chose_action': str(action),
             'action_probs': convert_action_probs_to_readable(probs, vectorizer, game_engine),
+            'vectorized_observation': obs,
             'current_player_name': game_engine_observation_state_copy['game_state']['current_player_name'],
             'current_phase': game_engine_observation_state_copy['game_state']['current_phase'],
             'current_player_state': game_engine_observation_state_copy['current_player_state'],
@@ -83,26 +84,32 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
         buffer['values'][current_player].append(value)
         buffer['dones'][current_player].append(done)
 
-    # Since the game is over, update the reward for the game_history and the buffer reward of the winner's last action that was appended
-    # NOTE: I'm not sure if this is a problme because if the other player was dumb and just bought the last card, then assigning 
+    # Since the game is over, update the reward for the game_history and the buffer reward of the winner's + loser's last action that was appended
+    # NOTE: I'm not sure if this is a problem because if the other player was dumb and just bought the last card, then assigning 
     # the reward to the other playe's last action doesn't feel right
     winner = game_engine.winner()
+    winning_reward = 1
+    tie_reward = 0.2
+    losing_reward = -1
+    
+    def update_rewards(player_name, reward):
+        for entry in reversed(game_history):
+            if entry['current_player_name'] == player_name:
+                entry['cumulative_rewards_after_action'] += reward - entry['reward']
+                entry['reward'] = reward
+                break
+
     if winner is not None:
         winner_index = 0 if winner.name == game_engine.players[0].name else 1
-        for i in range(len(game_history) - 1, -1, -1):
-            if game_history[i]['current_player_name'] == winner.name:
-                game_history[i]['cumulative_rewards_after_action'] += 1 - game_history[i]['reward']
-                game_history[i]['reward'] = 1
-                buffer['rewards'][winner_index][-1] = 1
-                break
+        loser_index = 1 - winner_index
+        update_rewards(winner.name, winning_reward)
+        update_rewards(game_engine.players[loser_index].name, losing_reward)
+        buffer['rewards'][winner_index][-1] = winning_reward
+        buffer['rewards'][loser_index][-1] = losing_reward
     else:
         for i in [0, 1]:
-            buffer['rewards'][i][-1] = 0.2
-            for j in range(len(game_history) - 1, -1, -1):
-                if game_history[j]['current_player_name'] == game_engine.players[i].name:
-                    game_history[j]['cumulative_rewards_after_action'] += 0.2 - game_history[j]['reward']
-                    game_history[j]['reward'] = 0.2
-                    break
+            update_rewards(game_engine.players[i].name, tie_reward)
+            buffer['rewards'][i][-1] = tie_reward
 
     return game_id, buffer, game_history
 

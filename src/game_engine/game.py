@@ -117,6 +117,17 @@ class Game:
     def get_other_player(self):
         return self.players[(self.current_player_turn + 1) % len(self.players)]
     
+    def get_maximum_possible_vp(self):
+        """
+        Get the maximum possible VPs for the game.
+        """
+        max_victory_points = 0
+        for card_name in SUPPLY_CARD_LIMITS.keys():
+            card = CARD_MAP[card_name]
+            if card.victory_points > 0:
+                max_victory_points += card.victory_points * SUPPLY_CARD_LIMITS[card_name]
+        return max_victory_points
+    
     def start_game(self):
         # Randomly select player to go first
         self.current_player_turn = random.randint(0, len(self.players) - 1)
