@@ -154,7 +154,9 @@ class PPOAgent:
             new_logits = self.actor(observations)
             new_masked_logits = new_logits.masked_fill(~action_masks, -float('inf'))
             new_values = self.critic(observations).squeeze(-1)
-            new_probs = stable_softmax(new_masked_logits)
+            # regular softmax
+            new_probs = torch.softmax(new_masked_logits, dim=-1)
+            #new_probs = stable_softmax(new_masked_logits)
             dist = Categorical(new_probs)
             new_log_probs = dist.log_prob(actions)
             entropy = dist.entropy()    
@@ -168,6 +170,7 @@ class PPOAgent:
 
             loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
 
+            # Separate Loss Implementation ##
             # Actor Loss Step
             self.actor_optimizer.zero_grad()
             actor_loss.backward(retain_graph=True)
@@ -176,6 +179,13 @@ class PPOAgent:
             self.critic_optimizer.zero_grad()
             value_loss.backward()
             self.critic_optimizer.step()
+
+            # ## Combined Loss Implementation ##
+            # self.actor_optimizer.zero_grad()
+            # self.critic_optimizer.zero_grad()
+            # loss.backward()
+            # self.actor_optimizer.step()
+            # self.critic_optimizer.step()
 
             # Log critical information every last gradient step
             if epoch == epochs - 1:
