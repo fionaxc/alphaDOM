@@ -16,15 +16,15 @@ class PPOActor(nn.Module):
         super().__init__()
         self.actor = nn.Sequential(
             nn.Linear(input_size, hidden_size),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(hidden_size, hidden_size),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(hidden_size, output_size)
         )
     
     def forward(self, obs):
-        return F.softmax(self.actor(obs), dim=-1)
-
+        # Return raw logits without applying softmax
+        return self.actor(obs)
 
 class PPOCritic(nn.Module):
     def __init__(self, input_size: int, hidden_size: int):
@@ -153,6 +153,7 @@ class PPOAgent:
         for epoch in range(epochs):
             new_logits = self.actor(observations)
             new_masked_logits = new_logits.masked_fill(~action_masks, -float('inf'))
+            new_masked_logits.retain_grad()
             new_values = self.critic(observations).squeeze(-1)
             # regular softmax
             new_probs = torch.softmax(new_masked_logits, dim=-1)
@@ -168,7 +169,7 @@ class PPOAgent:
 
             value_loss = nn.MSELoss()(new_values, returns.detach())
 
-            loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
+            # loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
 
             # Separate Loss Implementation ##
             # Actor Loss Step
@@ -189,7 +190,24 @@ class PPOAgent:
 
             # Log critical information every last gradient step
             if epoch == epochs - 1:
-                self.log_critical_info(player_name, game + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, loss, advantages, returns)
+                # Print out to make sure masking is correct
+                # print("==================invalid action masking=============")
+                # print("Original logits: ", new_logits)
+                # print("Action masks: ", action_masks)
+                # print("Masked logits: ", new_masked_logits)
+                # print("Probabilities: ", new_probs)
+                # print("Log probabilities: ", new_log_probs)
+                # print("Entropy: ", entropy)
+                # print("Ratio: ", ratio)
+                # print("Surrogate1: ", surrogate1)
+                # print("Surrogate2: ", surrogate2)
+                # print("Actor loss: ", actor_loss)
+                # print("Value loss: ", value_loss)
+                # print("Advantages: ", advantages)
+                # print("Returns: ", returns)
+                # print("Gradients: ", new_masked_logits.grad)
+
+                self.log_critical_info(player_name, game + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, torch.tensor([0.0]), advantages, returns)
 
     def compute_rtg(self, rewards: torch.Tensor) -> torch.Tensor:
         """

@@ -9,7 +9,11 @@ import torch
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Train a Dominion AI agent using PPO")
     parser.add_argument("--num_games", type=int, default=2000, help="Number of games to train")
+<<<<<<< HEAD
     parser.add_argument("--batch_size", type=int, default=100, help="Batch size for training (number of games)")
+=======
+    parser.add_argument("--batch_size", type=int, default=25, help="Batch size for training (number of games)")
+>>>>>>> bd68f684641c373e0a9ce14406c6fd52f9bcbddb
     parser.add_argument("--update_epochs", type=int, default=5, help="Number of epochs for each update")
     parser.add_argument("--hidden_size", type=int, default=64, help="Hidden size of the neural network")
     parser.add_argument("--run_id", type=str, default="default_run", help="Unique identifier for this run")
