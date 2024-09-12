@@ -66,9 +66,9 @@ The script accepts the following command-line arguments:
 
 | Argument          | Type | Default       | Description                        |
 | ----------------- | ---- | ------------- | ---------------------------------- |
-| `--num_games`     | int  | 100           | Number of games to train           |
-| `--batch_size`    | int  | 32            | Batch size (in games) for training |
-| `--update_epochs` | int  | 10            | Number of epochs for each update   |
+| `--num_games`     | int  | 2000          | Number of games to train           |
+| `--batch_size`    | int  | 25            | Batch size (in games) for training |
+| `--update_epochs` | int  | 5             | Number of epochs for each update   |
 | `--hidden_size`   | int  | 64            | Hidden size of the neural network  |
 | `--run_id`        | str  | "default_run" | Unique identifier for this run     |
 
