@@ -76,9 +76,9 @@ class PPOAgent:
         self.gae_lambda = gae_lambda
         self.output_dir = output_dir
 
-    def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float, torch.Tensor]:
+    def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float, torch.Tensor, torch.Tensor]:
         """
-        Get the action from the agent's policy. Returns the selected action and the log probability of the action (used for updating the policy).
+        Get the action from the agent's policy. Returns the selected action, the log probability of the action (used for updating the policy), and the action mask.
         """
         obs = torch.FloatTensor(obs)
         logits = self.actor(obs)
@@ -94,7 +94,7 @@ class PPOAgent:
 
         action_index = m.sample()
         selected_action = vectorizer.devectorize_action(action_index.item(), game.current_player())
-        return selected_action, m.log_prob(action_index).item(), probs.detach()
+        return selected_action, m.log_prob(action_index).item(), probs.detach(), action_mask
 
     def get_value(self, obs: np.ndarray) -> float:
         """
@@ -129,7 +129,7 @@ class PPOAgent:
             return action.card.victory_points / game_engine.get_maximum_possible_vp() if action.action_type == ActionType.BUY and (action.card.is_victory() or action.card.is_curse()) else 0
 
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
-               rewards: List[float], values: List[float], dones: List[bool], next_value: float, 
+               rewards: List[float], values: List[float], dones: List[bool], action_masks: List[np.ndarray], next_value: float,
                epochs: int, vectorizer: DominionVectorizer, game: int = 0):
         observations = torch.FloatTensor(np.array(observations))
         actions = torch.LongTensor(actions)
@@ -138,6 +138,7 @@ class PPOAgent:
         values = torch.FloatTensor(values)
         dones = torch.FloatTensor(dones)
         next_value = torch.FloatTensor([next_value])
+        action_masks = torch.stack(action_masks)
 
         #### GAE return implementation ######
         returns, advantages = self.compute_gae(rewards, values.detach(), next_value.detach(), dones)
@@ -151,19 +152,10 @@ class PPOAgent:
 
         for epoch in range(epochs):
             new_logits = self.actor(observations)
-            # print("new_logits: ", new_logits)
-            
+            new_masked_logits = new_logits.masked_fill(~action_masks, -float('inf'))
             new_values = self.critic(observations).squeeze(-1)
-            new_probs = stable_softmax(new_logits)
+            new_probs = stable_softmax(new_masked_logits)
             dist = Categorical(new_probs)
-            
-            # print("observations: ", observations)
-            # print("new_logits: ", new_logits)
-            # print("new_values: ", new_values)
-            # print("new_probs: ", new_probs)
-            # print("dist: ", dist)
-            # print("actions: ", actions)
-
             new_log_probs = dist.log_prob(actions)
             entropy = dist.entropy()    
 

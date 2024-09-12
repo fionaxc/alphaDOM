@@ -28,7 +28,8 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
         'log_probs': [[], []],
         'rewards': [[], []],
         'values': [[], []],
-        'dones': [[], []]
+        'dones': [[], []],
+        'action_masks': [[], []]
     }
 
     game_engine = Game()  # Reset the game state
@@ -45,7 +46,7 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
 
         obs = vectorizer.vectorize_observation(game_engine)
 
-        action, log_prob, probs = agent.get_action(obs, game_engine, vectorizer)
+        action, log_prob, probs, action_mask = agent.get_action(obs, game_engine, vectorizer)
         value = agent.get_value(obs)
 
         game_engine_observation_state_copy = copy.deepcopy(game_engine.get_observation_state())
@@ -65,6 +66,7 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
             'current_player_state': game_engine_observation_state_copy['current_player_state'],
             'opponent_state': game_engine_observation_state_copy['opponent_state'],
             'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles'],
+            'action_mask': action_mask,
         })
 
         action.apply()
@@ -83,7 +85,7 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
         buffer['rewards'][current_player].append(reward)
         buffer['values'][current_player].append(value)
         buffer['dones'][current_player].append(done)
-
+        buffer['action_masks'][current_player].append(action_mask)
     # Since the game is over, update the reward for the game_history and the buffer reward of the winner's + loser's last action that was appended
     # NOTE: I'm not sure if this is a problem because if the other player was dumb and just bought the last card, then assigning 
     # the reward to the other playe's last action doesn't feel right
@@ -121,7 +123,8 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
         'log_probs': [[], []],
         'rewards': [[], []],
         'values': [[], []],
-        'dones': [[], []]
+        'dones': [[], []],
+        'action_masks': [[], []]
     }
 
     with Pool() as pool:
@@ -173,6 +176,7 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                     combined_buffer['rewards'],
                     combined_buffer['values'],
                     combined_buffer['dones'],
+                    combined_buffer['action_masks'],
                     next_value=0,  # Terminal state
                     epochs=update_epochs,
                     vectorizer=vectorizer,
@@ -194,7 +198,8 @@ def run_all_games_sequentially(game_engine: Game, vectorizer: DominionVectorizer
         'log_probs': [[], []],
         'rewards': [[], []],
         'values': [[], []],
-        'dones': [[], []]
+        'dones': [[], []],
+        'action_masks': [[], []]
     }
 
     for game in tqdm(range(num_games)):
@@ -230,6 +235,7 @@ def run_all_games_sequentially(game_engine: Game, vectorizer: DominionVectorizer
                 combined_buffer['rewards'],
                 combined_buffer['values'],
                 combined_buffer['dones'],
+                combined_buffer['action_masks'],
                 next_value=0,  # Terminal state
                 epochs=update_epochs,
                 vectorizer=vectorizer,
