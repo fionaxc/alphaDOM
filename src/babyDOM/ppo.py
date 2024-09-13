@@ -166,7 +166,7 @@ class PPOAgent:
             ratio = torch.exp(new_log_probs - old_log_probs.detach())
             surrogate1 = ratio * advantages
             surrogate2 = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * advantages
-            actor_loss = -torch.min(surrogate1, surrogate2).mean()
+            actor_loss = -torch.min(surrogate1, surrogate2).mean() - self.entropy_coef * entropy.mean()
 
             value_loss = nn.MSELoss()(new_values, returns.detach())
 
