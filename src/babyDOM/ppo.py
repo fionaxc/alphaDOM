@@ -126,7 +126,8 @@ class PPOAgent:
             return -1
         # Continuing reward
         else:
-            return action.card.victory_points / game_engine.get_maximum_possible_vp() if action.action_type == ActionType.BUY and (action.card.is_victory() or action.card.is_curse()) else 0
+            return 0
+            # return action.card.victory_points / game_engine.get_maximum_possible_vp() if action.action_type == ActionType.BUY and (action.card.is_victory() or action.card.is_curse()) else 0
 
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], action_masks: List[np.ndarray], next_value: float,
@@ -165,7 +166,7 @@ class PPOAgent:
             ratio = torch.exp(new_log_probs - old_log_probs.detach())
             surrogate1 = ratio * advantages
             surrogate2 = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * advantages
-            actor_loss = -torch.min(surrogate1, surrogate2).mean()
+            actor_loss = -torch.min(surrogate1, surrogate2).mean() - self.entropy_coef * entropy.mean()
 
             value_loss = nn.MSELoss()(new_values, returns.detach())
 
@@ -249,7 +250,7 @@ class PPOAgent:
         """
         Log critical information about the training process every 10 games
         """
-        log_path = os.path.join(self.output_dir, 'training_log.txt')
+        log_path = os.path.join(self.output_dir, '_training_log.txt')
         # Create the log file if it doesn't exist
         if not os.path.exists(log_path):
             with open(log_path, 'w') as f:

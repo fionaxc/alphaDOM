@@ -273,7 +273,7 @@ def ppo_train(
     os.makedirs(output_dir, exist_ok=True)
 
     # Configure logging to write to a file in the output directory
-    log_file_path = os.path.join(output_dir, 'batch_sizes.txt')
+    log_file_path = os.path.join(output_dir, '_batch_sizes.txt')
     logging.basicConfig(
         level=logging.INFO,  # Set the logging level to INFO
         format='%(asctime)s - %(levelname)s - %(message)s',  # Log format

@@ -4,11 +4,9 @@ from game_engine.action import ActionType
 from .player import PlayerState
 from .phase import Phase
 
-DEFAULT_SUPPLY = ["Copper", "Silver", "Estate", "Duchy", "Province"]
-# DEFAULT_SUPPLY = ["Copper", "Silver", "Gold", "Estate", "Duchy", "Province", "Curse"]
-SIMPLE_SETUP = []
+DEFAULT_SUPPLY = ["Copper", "Silver", "Gold", "Estate", "Duchy", "Province", "Curse"]
 # SIMPLE_SETUP = ["Village", "Smithy", "Moneylender"]
-# SIMPLE_SETUP = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
+SIMPLE_SETUP = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
 # SIMPLE_CHAPEL_SETUP = ["Chapel", "Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
 
 class Game:
