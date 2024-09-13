@@ -17,7 +17,7 @@ def parse_arguments():
 
 def __main__():
     args = parse_arguments()
-    args.run_id = "0912_SIMPLE2_run1_games{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_games, args.batch_size, args.update_epochs, args.hidden_size)
+    args.run_id = "0912_SIMPLE2_run2_games{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_games, args.batch_size, args.update_epochs, args.hidden_size)
 
     # Initialize the game engine
     game_engine = Game()

@@ -69,6 +69,7 @@ class PPOAgent:
         self.critic = PPOCritic(obs_dim, hidden_size)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=lr)
+        self.lr = lr
         self.gamma = gamma
         self.epsilon = epsilon
         self.value_coef = value_coef

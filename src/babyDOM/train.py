@@ -129,6 +129,7 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
     with Pool() as pool:
         with tqdm(total=num_games) as pbar:
             game_counter = 1  # Initialize game counter
+            num_batch_updates = 0  # Initialize batch update counter
             while game_counter < num_games:
                 start_time = time.time()
 
@@ -181,6 +182,26 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                     vectorizer=vectorizer,
                     game=game_counter - 1 # -1 because we increment game_counter before using it
                 )
+                num_batch_updates += 1
+                # Save the model every 50 batch updates (50 * batch_size games)
+                if num_batch_updates % 2 == 0:
+                    checkpoint_dir = os.path.join(output_dir, 'checkpoints')
+                    if not os.path.exists(checkpoint_dir):
+                        os.makedirs(checkpoint_dir, exist_ok=True)
+                    agent_save_path = os.path.join(checkpoint_dir, f"checkpoint_game_{game_counter-1}.pth")
+                    model_dict = {
+                        'actor': agent.actor.state_dict(),
+                        'critic': agent.critic.state_dict(),
+                        'optimizer': agent.actor_optimizer.state_dict(),
+                        'critic_optimizer': agent.critic_optimizer.state_dict(),
+                        'lr': agent.lr,
+                        'gamma': agent.gamma,
+                        'epsilon': agent.epsilon,
+                        'value_coef': agent.value_coef,
+                        'entropy_coef': agent.entropy_coef,
+                        'gae_lambda': agent.gae_lambda
+                    }
+                    torch.save(model_dict, agent_save_path)
                 
                 # Clear batch buffer after update
                 batch_buffer = {key: [[], []] for key in batch_buffer}
