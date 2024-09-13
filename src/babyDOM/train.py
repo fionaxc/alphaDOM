@@ -56,17 +56,16 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
             'game': game_id,
             'game_over': game_engine_observation_state_copy['game_state']['game_over'],
             'reward': 0,
-            'cumulative_rewards_after_action': 0,
+            #'cumulative_rewards_after_action': 0,
             'current_turns': game_engine_observation_state_copy['game_state']['turn_number'],
             'from_state_chose_action': str(action),
             'action_probs': convert_action_probs_to_readable(probs, vectorizer, game_engine),
-            'vectorized_observation': obs,
+            #'vectorized_observation': obs,
             'current_player_name': game_engine_observation_state_copy['game_state']['current_player_name'],
             'current_phase': game_engine_observation_state_copy['game_state']['current_phase'],
             'current_player_state': game_engine_observation_state_copy['current_player_state'],
             'opponent_state': game_engine_observation_state_copy['opponent_state'],
-            'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles'],
-            'action_mask': action_mask,
+            'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles']
         })
 
         action.apply()
@@ -244,7 +243,8 @@ def run_all_games_sequentially(game_engine: Game, vectorizer: DominionVectorizer
             # Clear batch buffer after update
             batch_buffer = {key: [[], []] for key in batch_buffer}
 
-        save_game_history(output_dir, game + 1, game_history)
+        if game % 1000 == 0:
+            save_game_history(output_dir, game + 1, game_history)
 
         # End timing the entire process for the batch
         if (game + 1) % batch_size == 0:
