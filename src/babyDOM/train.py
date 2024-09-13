@@ -184,7 +184,7 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                 )
                 num_batch_updates += 1
                 # Save the model every 50 batch updates (50 * batch_size games)
-                if num_batch_updates % 2 == 0:
+                if num_batch_updates % 50 == 0:
                     checkpoint_dir = os.path.join(output_dir, 'checkpoints')
                     if not os.path.exists(checkpoint_dir):
                         os.makedirs(checkpoint_dir, exist_ok=True)
