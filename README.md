@@ -4,7 +4,7 @@ AlphaDOM is a project by Fiona Cai and Kevin Jiang focused on building a Deep Re
 
 ## Agents
 
-- **BabyDOM**: Our first RL agent that uses Proximal Policy Optimization with Clipped Surrogate Objective (PPO-Clip) and self-play to learn and play a basic Kingdom (Chapel, Festival, Village, Smithy, Market, Moneylender, Witch, Lab)
+- **BabyDOM**: Our first RL agent built from scratch that uses Proximal Policy Optimization with Clipped Surrogate Objective (PPO-Clip) and self-play to learn and play basic Kingdoms (Chapel, Festival, Village, Smithy, Market, Moneylender, Witch, Lab)
 
 ## Repository Structure
 
