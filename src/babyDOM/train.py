@@ -144,7 +144,7 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                 results.sort(key=lambda x: x[0])
 
                 # Save game histories in parallel
-                save_futures = [pool.apply_async(save_game_history, (output_dir, game_id, game_history)) for game_id, _, game_history in results]
+                save_futures = [pool.apply_async(save_game_history, (output_dir, game_id, game_history)) for game_id, _, game_history in results if game_id % 1000 == 0]
                 for future in save_futures:
                     future.get()  # Ensure all save operations complete
 
