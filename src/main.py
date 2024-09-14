@@ -11,8 +11,9 @@ def parse_arguments():
     parser.add_argument("--num_games", type=int, default=1000000, help="Number of games to train")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training (number of games)")
     parser.add_argument("--update_epochs", type=int, default=5, help="Number of epochs for each update")
-    parser.add_argument("--hidden_size", type=int, default=128, help="Hidden size of the neural network")
+    parser.add_argument("--hidden_size", type=int, default=256, help="Hidden size of the neural network")
     parser.add_argument("--run_id", type=str, default="default_run", help="Unique identifier for this run")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to a checkpoint file to load model weights from")
     return parser.parse_args()
 
 def __main__():
@@ -38,6 +39,7 @@ def __main__():
         batch_size=args.batch_size,
         update_epochs=args.update_epochs,
         hidden_size=args.hidden_size,
+        checkpoint_path=args.checkpoint_path
     )
 
     print(f"Training completed for run {args.run_id}")

@@ -285,10 +285,11 @@ def ppo_train(
         batch_size: int,
         update_epochs: int,
         hidden_size: int,
+        checkpoint_path: str = None
 ) -> PPOAgent:
     obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
-    agent = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir)
+    agent = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir, checkpoint_path=checkpoint_path)
     
     # Create a directory for storing output files
     os.makedirs(output_dir, exist_ok=True)

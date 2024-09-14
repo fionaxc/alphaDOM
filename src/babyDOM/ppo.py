@@ -54,7 +54,8 @@ class PPOAgent:
                  value_coef: float = 0.5, 
                  entropy_coef: float = 0.01, 
                  gae_lambda: float = 0.95,
-                 output_dir: str = "src/output"):
+                 output_dir: str = "src/output",
+                 checkpoint_path: str = None):
         """
         Initialize the PPOAgent that uses a combined loss function for actor and critic.
 
@@ -68,6 +69,8 @@ class PPOAgent:
             value_coef (float): Coefficient for the value loss in the combined loss function.
             entropy_coef (float): Coefficient for the entropy loss in the combined loss function.
             gae_lambda (float): Lambda parameter for the Generalized Advantage Estimation (GAE).
+            output_dir (str): Directory to save training logs and checkpoints.
+            checkpoint_path (str): Path to a checkpoint file to load model weights from.
         """
         self.actor = PPOActor(obs_dim, action_dim, hidden_size)
         self.critic = PPOCritic(obs_dim, hidden_size)
@@ -80,6 +83,31 @@ class PPOAgent:
         self.entropy_coef = entropy_coef
         self.gae_lambda = gae_lambda
         self.output_dir = output_dir
+
+        # Load checkpoint if provided
+        if checkpoint_path:
+            self.load_checkpoint(checkpoint_path)
+    
+    def load_checkpoint(self, checkpoint_path: str):
+        """
+        Load model weights from a checkpoint file.
+
+        Args:
+            checkpoint_path (str): Path to the checkpoint file.
+        """
+        checkpoint = torch.load(checkpoint_path)
+        self.actor.load_state_dict(checkpoint['actor'])
+        self.critic.load_state_dict(checkpoint['critic'])
+        self.actor_optimizer.load_state_dict(checkpoint['optimizer'])
+        self.critic_optimizer.load_state_dict(checkpoint['critic_optimizer'])
+        # self.lr = checkpoint['lr']
+        # self.gamma = checkpoint['gamma']
+        # self.epsilon = checkpoint['epsilon']
+        # self.value_coef = checkpoint['value_coef']
+        # self.entropy_coef = checkpoint['entropy_coef']
+        # self.gae_lambda = checkpoint['gae_lambda']
+        print(f"Loaded checkpoint from {checkpoint_path}")
+        # print(f"{checkpoint}")
 
     def get_action(self, obs: np.ndarray, game: Game, vectorizer: DominionVectorizer) -> Tuple[Action, float, torch.Tensor, torch.Tensor]:
         """

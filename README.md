@@ -64,25 +64,11 @@ python3 -m unittest discover -s tests
 
 The script accepts the following command-line arguments:
 
-| Argument          | Type | Default       | Description                        |
-| ----------------- | ---- | ------------- | ---------------------------------- |
-| `--num_games`     | int  | 2000          | Number of games to train           |
-| `--batch_size`    | int  | 25            | Batch size (in games) for training |
-| `--update_epochs` | int  | 5             | Number of epochs for each update   |
-| `--hidden_size`   | int  | 64            | Hidden size of the neural network  |
-| `--run_id`        | str  | "default_run" | Unique identifier for this run     |
-
-Example:
-
-```bash
-python3 main.py --num_games 200 --batch_size 64 --run_id my_custom_run
-```
-
-This will start the training process using the specified parameters. The script will:
-
-1. Parse command-line arguments
-2. Initialize the game engine and vectorizer
-3. Create an output directory for the run
-4. Run the PPO training algorithm
-5. Save the trained agents and output files
-6. Save the training parameters to a CSV file
+| Argument            | Type | Default       | Description                                          |
+| ------------------- | ---- | ------------- | ---------------------------------------------------- |
+| `--num_games`       | int  | 1000000       | Number of games to train                             |
+| `--batch_size`      | int  | 32            | Batch size (in games) for training                   |
+| `--update_epochs`   | int  | 5             | Number of epochs for each update                     |
+| `--hidden_size`     | int  | 256           | Hidden size of the neural network                    |
+| `--run_id`          | str  | "default_run" | Unique identifier for this run                       |
+| `--checkpoint_path` | str  | None          | Path to a checkpoint file to load model weights from |
