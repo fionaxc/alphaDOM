@@ -52,7 +52,7 @@ def play_against_bot(agent: PPOAgent, game_engine: Game, vectorizer: DominionVec
         print("The game is a tie.")
 
 if __name__ == "__main__":
-    checkpoint_path = "src/output/village_smithy_moneylender_festival_laboratory_market_witch/3M_0912_SIMPLE2_run3_games1000000_batchsize32_updateepochs5_hidden256/checkpoints/checkpoint_game_652800.pth"
+    checkpoint_path = "src/sample_agents/village_smithy_moneylender_festival_laboratory_market_witch/3M_0912_SIMPLE2_run3_games1000000_batchsize32_updateepochs5_hidden256/checkpoint_game_652800.pth"
     hidden_size = 256  # Adjust based on your model
     game_engine = Game()
     vectorizer = DominionVectorizer(game_engine.all_card_names)
