@@ -21,6 +21,7 @@ def save_game_history(output_dir: str, game_id: int, game_history: list):
         writer.writerows(game_history)
 
 def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent, game_id: int):
+    # start_game_time = time.time()  # Start timing the action selection
     # Initialize new buffer to store experiences of one rollout
     buffer = {
         'observations': [[], []],  # For each player
@@ -41,15 +42,26 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
     # Initialize variables for tracking game state
     cumulative_rewards_after_action = [0, 0]
 
+    # start_play_time = time.time()  # Start timing the action selection
     while not done:
         current_player = game_engine.current_player_turn
 
         obs = vectorizer.vectorize_observation(game_engine)
 
+        # start_time = time.time()  # Start timing the action selection
         action, log_prob, probs, action_mask = agent.get_action(obs, game_engine, vectorizer)
-        value = agent.get_value(obs)
+        # action_selection_time = time.time() - start_time  # Calculate the time taken for action selection
+        # print(f"Action selection time: {action_selection_time:.6f} seconds")  # Log the action selection time
 
+        # start_time = time.time()  # Start timing the value estimation
+        value = agent.get_value(obs)
+        # value_estimation_time = time.time() - start_time  # Calculate the time taken for value estimation
+        # print(f"Value estimation time: {value_estimation_time:.6f} seconds")  # Log the value estimation time
+
+        # start_time = time.time()  # Start timing the game state copy
         game_engine_observation_state_copy = copy.deepcopy(game_engine.get_observation_state())
+        # game_state_copy_time = time.time() - start_time  # Calculate the time taken for game state copy
+        # print(f"Game state copy time: {game_state_copy_time:.6f} seconds")  # Log the game state copy time
 
         # Log the game state before we take an action
         game_history.append({
@@ -68,7 +80,10 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
             'supply_piles': game_engine_observation_state_copy['game_state']['supply_piles']
         })
 
+        # start_time = time.time()  # Start timing the action application
         action.apply()
+        # action_application_time = time.time() - start_time  # Calculate the time taken for action application
+        # print(f"Action application time: {action_application_time:.6f} seconds")  # Log the action application time
 
         done = game_engine.game_over
         reward = agent.calculate_reward(game_engine, current_player, done, action)
@@ -85,6 +100,11 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
         buffer['values'][current_player].append(value)
         buffer['dones'][current_player].append(done)
         buffer['action_masks'][current_player].append(action_mask)
+
+    # end_play_time = time.time()  # End timing the action selection
+    # play_duration = end_play_time - start_play_time  # Calculate the total game duration
+    # print(f"Total play duration: {play_duration:.2f} seconds")  # Log the total game duration
+
     # Since the game is over, update the reward for the game_history and the buffer reward of the winner's + loser's last action that was appended
     # NOTE: I'm not sure if this is a problem because if the other player was dumb and just bought the last card, then assigning 
     # the reward to the other playe's last action doesn't feel right
@@ -111,6 +131,10 @@ def play_game(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent
         for i in [0, 1]:
             update_rewards(game_engine.players[i].name, tie_reward)
             buffer['rewards'][i][-1] = tie_reward
+    
+    # end_game_time = time.time()  # End timing the game
+    # game_duration = end_game_time - start_game_time  # Calculate the total game duration
+    # print(f"Total game duration: {game_duration:.2f} seconds")  # Log the total game duration
 
     return game_id, buffer, game_history
 
@@ -163,6 +187,14 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                              f"rewards: {len(batch_buffer['rewards'][0]) + len(batch_buffer['rewards'][1])}, " +
                              f"values: {len(batch_buffer['values'][0]) + len(batch_buffer['values'][1])}, " +
                              f"dones: {len(batch_buffer['dones'][0]) + len(batch_buffer['dones'][1])}")
+                
+                # End timing the game-playing process
+                end_game_time = time.time()
+                game_duration = end_game_time - start_time
+                logging.info(f"Game playing duration: {game_duration:.2f} seconds")
+
+                # Start timing the update process
+                update_start_time = time.time()
 
                 # Combine buffers from all games in the batch
                 combined_buffer = {key: batch_buffer[key][0] + batch_buffer[key][1] for key in batch_buffer}
@@ -183,6 +215,12 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                     game=game_counter - 1 # -1 because we increment game_counter before using it
                 )
                 num_batch_updates += 1
+
+                # End timing the update process
+                update_end_time = time.time()
+                update_duration = update_end_time - update_start_time
+                logging.info(f"Update duration: {update_duration:.2f} seconds")
+
                 # Save the model every 50 batch updates (50 * batch_size games)
                 if num_batch_updates % 50 == 0:
                     checkpoint_dir = os.path.join(output_dir, 'checkpoints')
@@ -205,10 +243,6 @@ def run_all_games_in_parallel(game_engine: Game, vectorizer: DominionVectorizer,
                 
                 # Clear batch buffer after update
                 batch_buffer = {key: [[], []] for key in batch_buffer}
-                
-                end_time = time.time()
-                batch_duration = end_time - start_time
-                logging.info(f"Batch update duration: {batch_duration:.2f} seconds")
 
 def run_all_games_sequentially(game_engine: Game, vectorizer: DominionVectorizer, agent: PPOAgent, num_games: int, batch_size: int, update_epochs: int, output_dir: str):
     # Initialize buffer for batch updates
