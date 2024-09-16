@@ -49,10 +49,10 @@ class PPOAgent:
                  action_dim: int, 
                  hidden_size: int, 
                  lr: float = 1e-4, 
-                 gamma: float = 0.95, 
-                 epsilon: float = 0.2, 
+                 gamma: float = 0.9999, 
+                 epsilon: float = 0.15, 
                  value_coef: float = 0.5, 
-                 entropy_coef: float = 0.01, 
+                 entropy_coef: float = 0.05, 
                  gae_lambda: float = 0.95,
                  output_dir: str = "src/output",
                  checkpoint_path: str = None):
@@ -164,7 +164,7 @@ class PPOAgent:
 
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], action_masks: List[np.ndarray], next_value: float,
-               epochs: int, vectorizer: DominionVectorizer, game: int = 0):
+               epochs: int, vectorizer: DominionVectorizer, batch_size: int,game: int = 0):
         observations = torch.FloatTensor(np.array(observations))
         actions = torch.LongTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
@@ -223,7 +223,7 @@ class PPOAgent:
             # self.critic_optimizer.step()
 
             # Log critical information every last gradient step
-            if epoch == epochs - 1:
+            if epoch == epochs - 1 and game % (batch_size * 50) == 0:
                 # Print out to make sure masking is correct
                 # print("==================invalid action masking=============")
                 # print("Original logits: ", new_logits)
@@ -241,7 +241,7 @@ class PPOAgent:
                 # print("Returns: ", returns)
                 # print("Gradients: ", new_masked_logits.grad)
 
-                self.log_critical_info(player_name, game + 1, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, torch.tensor([0.0]), advantages, returns)
+                self.log_critical_info(player_name, game, actor_loss, value_loss, surrogate1, surrogate2, ratio, entropy, torch.tensor([0.0]), advantages, returns)
 
     def compute_rtg(self, rewards: torch.Tensor) -> torch.Tensor:
         """

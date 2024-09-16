@@ -195,7 +195,7 @@ class Game:
         return None
         
     def get_game_state_string(self):
-        state = f"Turn {self.turn_number}, Phase: {self.current_phase.value}\n"
+        state = f"\n{'='*20} Turn {self.turn_number}, Phase: {self.current_phase.value} {'='*20}\n"
         state += f"Current Player: {self.current_player().name}\n"
         state += "Supply Piles:\n"
         for card, count in self.supply_piles.items():
@@ -204,7 +204,9 @@ class Game:
         for player in self.players:
             state += f"  {player.name}:\n"
             state += f"    Actions: {player.actions}, Buys: {player.buys}, Coins: {player.coins}\n"
+            state += f"    Victory Points: {player.victory_points()}\n"  # Added victory points
             state += f"    Hand: {', '.join(str(card) for card in player.hand)}\n"
-            state += f"    Deck: {len(player.draw_pile)} cards\n"
-            state += f"    Discard: {len(player.discard_pile)} cards\n"
+            state += f"    Played Hand: {', '.join(str(card) for card in player.played_cards)}\n"  # Added played hand
+            state += f"    Deck: {len(player.draw_pile)} cards ({', '.join(str(card) for card in player.draw_pile)})\n"
+            state += f"    Discard: {len(player.discard_pile)} cards ({', '.join(str(card) for card in player.discard_pile)})\n"
         return state
