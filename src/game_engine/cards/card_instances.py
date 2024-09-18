@@ -1,9 +1,13 @@
 from .card import Card, CardType
-from ..effects import CompositeEffect, DrawCardsEffect, AddMoneyEffect, AddActionsEffect, AddBuysEffect, ConditionalEffect, TrashCardInHandEffect, AddCurseEffect
+from ..effects import CompositeEffect, DrawCardsEffect, AddMoneyEffect, AddActionsEffect, AddBuysEffect, ConditionalEffect, TrashCardInHandEffect, AddCurseEffect, FirstPlayedEffect
 
 def has_copper(player, game):
     # Check if the player has a Copper card in hand
     return any(card == DEFAULT_CARDS["Copper"] for card in player.hand)
+
+def has_played_silver(player, game):
+    # Check if the player has played a Silver card
+    return any(card == DEFAULT_CARDS["Silver"] for card in player.played_cards)
 
 # Constants mapping card names to Card objects
 DEFAULT_CARDS = {
@@ -19,7 +23,7 @@ DEFAULT_CARDS = {
         type=CardType.TREASURE,
         cost=3,
         victory_points=0,
-        effect=CompositeEffect(effects=[AddMoneyEffect(amount=2)])
+        effect=CompositeEffect(effects=[AddMoneyEffect(amount=2), ])
     ),
     "Gold": Card(
         name="Gold",
@@ -72,6 +76,14 @@ BASIC_KINGDOM_CARDS = {
         cost=3,
         victory_points=0,
         effect=CompositeEffect(effects=[DrawCardsEffect(num_cards=1), AddActionsEffect(num_actions=2)])
+    ),
+    "Merchant": Card(
+        name="Merchant",
+        type=CardType.ACTION,
+        cost=3,
+        victory_points=0,
+        effect=CompositeEffect(effects=[DrawCardsEffect(num_cards=1), AddActionsEffect(num_actions=1)]),
+        activation_effects=FirstPlayedEffect(card=DEFAULT_CARDS["Silver"], effect=AddMoneyEffect(amount=1))
     ),
     "Smithy": Card(
         name="Smithy",

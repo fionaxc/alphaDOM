@@ -68,3 +68,17 @@ class ConditionalEffect(Effect):
         # Check the condition and apply the effect if true
         if self.condition(player, game):
             self.effect.apply(player, game)
+
+class FirstPlayedEffect(Effect):
+    def __init__(self, card, effect):
+        self.card = card
+        self.activated = False
+        self.effect = effect
+
+    def apply(self, player, game):
+        if not self.activated and self.card in player.played_cards:
+            self.activated = True
+            self.effect.apply(player, game)
+    
+    def reset(self):
+        self.activated = False

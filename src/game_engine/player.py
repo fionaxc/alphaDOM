@@ -97,6 +97,10 @@ class PlayerState:
             self.actions -= 1
             card.play(self, self.game)
 
+            # Trigger any activation effects
+            for card in self.played_cards:
+                card.activate(self, self.game)
+
             # If we're in the action phase and no actions left, end action phase
             if self.game.current_phase == Phase.ACTION and self.actions <= 0:
                 self.end_action_phase()
@@ -136,6 +140,10 @@ class PlayerState:
         self.actions = 1
         self.buys = 1
         self.coins = 0
+
+        # Reset activation effects
+        for card in self.played_cards:
+            card.reset()
 
         # Move all cards from hand to discard pile
         self.discard_pile.extend(self.hand)

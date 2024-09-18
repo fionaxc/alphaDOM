@@ -45,14 +45,14 @@ class PPOCritic(nn.Module):
         return self.critic(obs)
 
 class PPOAgent:
-    def __init__(self, obs_dim: int, 
-                 action_dim: int, 
-                 hidden_size: int, 
-                 lr: float = 1e-4, 
-                 gamma: float = 0.9999, 
-                 epsilon: float = 0.15, 
-                 value_coef: float = 0.5, 
-                 entropy_coef: float = 0.05, 
+    def __init__(self, obs_dim: int,
+                 action_dim: int,
+                 hidden_size: int,
+                 lr: float = 1e-4,
+                 gamma: float = 0.9999,
+                 epsilon: float = 0.15,
+                 value_coef: float = 0.5,
+                 entropy_coef: float = 0.05,
                  gae_lambda: float = 0.95,
                  output_dir: str = "src/output",
                  checkpoint_path: str = None):
