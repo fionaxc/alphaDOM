@@ -99,7 +99,7 @@ class PlayerState:
 
             # Trigger any activation effects
             for card in self.played_cards:
-                if card.activation_effects:
+                if card.activation_effect:
                     card.activate(self, self.game)
 
             # If we're in the action phase and no actions left, end action phase
@@ -144,8 +144,8 @@ class PlayerState:
 
         # Reset activation effects if there is a reset method
         for card in self.played_cards:
-            if hasattr(card, 'reset'):
-                card.reset()
+            if hasattr(card.activation_effect, 'reset'):
+                card.activation_effect.reset()
 
         # Move all cards from hand to discard pile
         self.discard_pile.extend(self.hand)

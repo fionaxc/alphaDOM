@@ -83,7 +83,7 @@ BASIC_KINGDOM_CARDS = {
         cost=3,
         victory_points=0,
         effect=CompositeEffect(effects=[DrawCardsEffect(num_cards=1), AddActionsEffect(num_actions=1)]),
-        activation_effects=FirstPlayedEffect(card=DEFAULT_CARDS["Silver"], effect=AddMoneyEffect(amount=1))
+        activation_effect=FirstPlayedEffect(card=DEFAULT_CARDS["Silver"], effect=AddMoneyEffect(amount=1))
     ),
     "Smithy": Card(
         name="Smithy",
@@ -148,6 +148,7 @@ SUPPLY_CARD_LIMITS = {
     "Curse": 10,
     "Chapel": 10,
     "Village": 10,
+    "Merchant": 10,
     "Smithy": 10,
     "Moneylender": 10,
     "Festival": 10,

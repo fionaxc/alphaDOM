@@ -118,13 +118,14 @@ class Game:
     
     def get_maximum_possible_vp(self):
         """
-        Get the maximum possible VPs for the game.
+        Get the maximum possible VPs for the game given the kingdom cards.
         """
         max_victory_points = 0
         for card_name in SUPPLY_CARD_LIMITS.keys():
-            card = CARD_MAP[card_name]
-            if card.victory_points > 0:
-                max_victory_points += card.victory_points * SUPPLY_CARD_LIMITS[card_name]
+            if card_name in self.all_card_names:
+                card = CARD_MAP[card_name]
+                if card.victory_points > 0:
+                    max_victory_points += card.victory_points * SUPPLY_CARD_LIMITS[card_name]
         return max_victory_points
     
     def start_game(self):

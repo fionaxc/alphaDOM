@@ -83,3 +83,9 @@ To ensure the game engine is functioning correctly, we have included a suite of 
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+Or if you want to run a specific test, you can do something like:
+
+```bash
+python3 -m unittest tests.test_game_engine.TestGameEngine.test_merchant_card
+```

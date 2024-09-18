@@ -3,6 +3,7 @@ import sys
 import os
 import random
 from pprint import pprint  # Import pprint for pretty-printing
+from src.game_engine.cards.card_instances import *
 
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
@@ -20,7 +21,18 @@ class TestGameEngine(unittest.TestCase):
         if 'game_state' in observation_state:
             observation_state['game_state'].pop('card_costs', None)
         return observation_state
-        
+    
+    def pretty_print_initial_game_state_and_valid_actions(self, game):
+        print("Initial Game State:")
+        pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
+        print("\nInitial Valid Actions:")
+        pprint(game.get_valid_actions())  # Pretty-print the valid actions
+
+    def pretty_print_intermediate_game_state_and_valid_actions(self, action, game):
+        print(f"\nGame State after {action}:")
+        pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
+        print(f"\nValid Actions after {action}:")
+        pprint(game.get_valid_actions())  # Pretty-print the valid actions
 
     def test_initial_game_state(self):
         self.print_title("Initial Game State")
@@ -29,10 +41,7 @@ class TestGameEngine(unittest.TestCase):
         game = Game()
 
         # Print the initial game state and valid actions
-        print("Initial Game State:")
-        pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
-        print("\nInitial Valid Actions:")
-        pprint(game.get_valid_actions())  # Pretty-print the valid actions
+        self.pretty_print_initial_game_state_and_valid_actions(game)
     
     def run_n_randomized_actions(self, n):
         self.print_title(f"{n} Randomized Actions")
@@ -41,10 +50,7 @@ class TestGameEngine(unittest.TestCase):
         game = Game()
 
         # Print the initial game state and valid actions
-        print("Initial Game State:")
-        pprint(self.simplified_observation_state(game.get_observation_state()))
-        print("\nInitial Valid Actions:")
-        pprint(game.get_valid_actions())
+        self.pretty_print_initial_game_state_and_valid_actions(game)
 
         for i in range(1, n+1):
             if game.game_over:
@@ -63,10 +69,7 @@ class TestGameEngine(unittest.TestCase):
             action.apply()
 
             # Print the game state and valid actions after the action
-            print(f"\nGame State after {action}:")
-            pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
-            print(f"\nValid Actions after {action}:")
-            pprint(game.get_valid_actions())  # Pretty-print the valid actions
+            self.pretty_print_intermediate_game_state_and_valid_actions(action, game)
     
     def test_five_randomized_actions(self):
         self.run_n_randomized_actions(5)
@@ -84,14 +87,34 @@ class TestGameEngine(unittest.TestCase):
         game = Game()
         current_player = game.current_player()
 
-        # Initialize current player's hand with merchant and silver
-        current_player.hand = ['Merchant', 'Silver', 'Copper', 'Copper']
+        # Initialize current player's hand with merchant and silver card objects
+        current_player.hand = [CARD_MAP['Merchant'], CARD_MAP['Silver'], CARD_MAP['Copper'], CARD_MAP['Silver']]
+        current_player.draw_pile = []
 
         # Print the initial game state and valid actions
-        print("Initial Game State:")
-        pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
-        print("\nInitial Valid Actions:")
-        pprint(game.get_valid_actions())  # Pretty-print the valid actions
+        self.pretty_print_initial_game_state_and_valid_actions(game)
+
+        # Play merchant
+        [a for a in game.get_valid_actions() if a.card and a.card.name == 'Merchant'][0].apply()
+        self.pretty_print_intermediate_game_state_and_valid_actions("Playing Merchant", game)
+
+        # End action
+        game.get_valid_actions()[0].apply()
+        self.pretty_print_intermediate_game_state_and_valid_actions("Ending Action", game)
+
+        # End Buy for both players to get back to original player
+        [a for a in game.get_valid_actions() if a.card is None][0].apply()
+        [a for a in game.get_valid_actions() if a.card is None][0].apply()
+        self.pretty_print_intermediate_game_state_and_valid_actions("Ending Buy for both players", game)
+
+        # Play merchant second time
+        [a for a in game.get_valid_actions() if a.card and a.card.name == 'Merchant'][0].apply()
+        self.pretty_print_intermediate_game_state_and_valid_actions("Playing Merchant second time", game)
+
+        # End action second time
+        game.get_valid_actions()[0].apply()
+        self.pretty_print_intermediate_game_state_and_valid_actions("Ending Action second time", game)
+
         
 if __name__ == '__main__':
     unittest.main()

@@ -9,7 +9,7 @@ class CardType(Flag):
     ATTACK = auto()
 
 class Card:
-    def __init__(self, name, type, cost, victory_points, effect: Effect, activation_effects: Effect=None):
+    def __init__(self, name, type, cost, victory_points, effect: Effect, activation_effect: Effect=None):
         """
         Initialize a card (e.g. Village) with its attributes.
 
@@ -19,14 +19,14 @@ class Card:
             cost (int): The cost to buy the card.
             victory_points (int): The victory points the card provides.
             effect (Effect): The effect(s) the card has when played (e.g. +2 actions, +1 buy, etc.), defined in effects.py
-            activation_effects (Effect): The effect(s) the card has when activated (e.g. merchant giving +1 money when silver is first played), defined in effects.py
+            activation_effect (Effect): The effect(s) the card has when activated (e.g. merchant giving +1 money when silver is first played), defined in effects.py
         """
         self.name = name
         self.type = type
         self.cost = cost 
         self.victory_points = victory_points
         self.effect = effect
-        self.activation_effects = activation_effects
+        self.activation_effect = activation_effect
 
     def is_type(self, card_type):
         return bool(self.type & card_type)
@@ -47,7 +47,7 @@ class Card:
         self.effect.apply(player, game)
     
     def activate(self, player, game):
-        self.activation_effects.apply(player, game)
+        self.activation_effect.apply(player, game)
 
     def __eq__(self, other):
         return self.name == other.name
