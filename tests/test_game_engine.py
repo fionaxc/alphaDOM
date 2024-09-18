@@ -77,5 +77,21 @@ class TestGameEngine(unittest.TestCase):
     def test_five_hundred_randomized_actions(self):
         self.run_n_randomized_actions(500)
 
+    def test_merchant_card(self):
+        self.print_title("Merchant Card")
+
+        # Initialize a new game
+        game = Game()
+        current_player = game.current_player()
+
+        # Initialize current player's hand with merchant and silver
+        current_player.hand = ['Merchant', 'Silver', 'Copper', 'Copper']
+
+        # Print the initial game state and valid actions
+        print("Initial Game State:")
+        pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
+        print("\nInitial Valid Actions:")
+        pprint(game.get_valid_actions())  # Pretty-print the valid actions
+        
 if __name__ == '__main__':
     unittest.main()

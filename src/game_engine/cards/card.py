@@ -9,7 +9,7 @@ class CardType(Flag):
     ATTACK = auto()
 
 class Card:
-    def __init__(self, name, type, cost, victory_points, effect: Effect, activation_effects: Effect):
+    def __init__(self, name, type, cost, victory_points, effect: Effect, activation_effects: Effect=None):
         """
         Initialize a card (e.g. Village) with its attributes.
 

@@ -21,7 +21,7 @@ class PlayerState:
         self.buys = 0
         self.coins = 0
 
-        # Deck information
+        # Deck information — card objects
         self.draw_pile = []
         self.hand = []
         self.played_cards = []
@@ -99,7 +99,8 @@ class PlayerState:
 
             # Trigger any activation effects
             for card in self.played_cards:
-                card.activate(self, self.game)
+                if card.activation_effects:
+                    card.activate(self, self.game)
 
             # If we're in the action phase and no actions left, end action phase
             if self.game.current_phase == Phase.ACTION and self.actions <= 0:
@@ -141,9 +142,10 @@ class PlayerState:
         self.buys = 1
         self.coins = 0
 
-        # Reset activation effects
+        # Reset activation effects if there is a reset method
         for card in self.played_cards:
-            card.reset()
+            if hasattr(card, 'reset'):
+                card.reset()
 
         # Move all cards from hand to discard pile
         self.discard_pile.extend(self.hand)
