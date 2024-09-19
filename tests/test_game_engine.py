@@ -50,7 +50,7 @@ class TestGameEngine(unittest.TestCase):
         self.print_title(f"{n} Randomized Actions")
 
         # Initialize a new game
-        game = Game()
+        game = Game(["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Merchant", "Council Room", "Witch", "Gardens"])
 
         # Print the initial game state and valid actions
         self.pretty_print_initial_game_state_and_valid_actions(game)
@@ -87,7 +87,7 @@ class TestGameEngine(unittest.TestCase):
         self.print_title("Merchant Card")
 
         # Initialize a new game
-        game = Game()
+        game = Game(["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Merchant"])
         current_player = game.current_player()
 
         # Initialize current player's hand with merchant and silver card objects
@@ -122,10 +122,10 @@ class TestGameEngine(unittest.TestCase):
         self.print_title("Council Room Card")
 
         # Initialize a new game
-        game = Game()
+        game = Game(["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Council Room"])
         current_player = game.current_player()
 
-        # Initialize current player's hand with merchant and silver card objects
+        # Initialize current player's hand
         current_player.hand = [CARD_MAP['Council Room']]
         current_player.draw_pile = [CARD_MAP['Silver'], CARD_MAP['Copper'], CARD_MAP['Estate'], CARD_MAP['Gold'], CARD_MAP['Duchy']]
 
@@ -139,6 +139,36 @@ class TestGameEngine(unittest.TestCase):
         # End action
         game.get_valid_actions()[0].apply()
         self.pretty_print_intermediate_game_state_and_valid_actions("Ending Action", game, opponent_state=True)
+    
+    def test_gardens_card(self):
+        self.print_title("Gardens Card")
+
+        # Initialize a new game
+        game = Game(["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Gardens"])
+        current_player = game.current_player()
+        print(f'Max vp: {game.get_maximum_possible_vp()}')
+
+        # Initialize current player's deck with copper cards and gardens
+        current_player.hand = [CARD_MAP['Gardens']]
+        current_player.draw_pile = [CARD_MAP['Copper']] * 46
+
+        # Print the initial game state and valid actions
+        self.pretty_print_initial_game_state_and_valid_actions(game)
+
+        # Initialize current player's deck with copper cards and gardens
+        current_player.hand = [CARD_MAP['Gardens']]
+        current_player.draw_pile = [CARD_MAP['Copper']] * 2
+
+        # Print the initial game state and valid actions
+        self.pretty_print_initial_game_state_and_valid_actions(game)
+
+                # Initialize current player's deck with copper cards and gardens
+        current_player.hand = [CARD_MAP['Gardens']]
+        current_player.draw_pile = [CARD_MAP['Copper']] * 74
+
+        # Print the initial game state and valid actions
+        self.pretty_print_initial_game_state_and_valid_actions(game)
+    
 
         
 if __name__ == '__main__':

@@ -77,7 +77,7 @@ class PlayerState:
         return self.draw_pile + self.hand + self.played_cards + self.discard_pile
     
     def victory_points(self):
-        return sum(card.victory_points for card in self.all_cards())
+        return sum(card.get_victory_points(self) for card in self.all_cards())
 
     def play_remaining_treasures(self):
         # Play all treasure cards in hand

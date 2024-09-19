@@ -120,12 +120,16 @@ class Game:
         """
         Get the maximum possible VPs for the game given the kingdom cards.
         """
+        # Create a new player with a deck size of 60 for Gardens
+        max_vp_player = PlayerState("Max VP Player", self)
+        max_vp_player.draw_pile = [CARD_MAP["Copper"]] * 60
+
         max_victory_points = 0
         for card_name in SUPPLY_CARD_LIMITS.keys():
             if card_name in self.all_card_names:
                 card = CARD_MAP[card_name]
-                if card.victory_points > 0:
-                    max_victory_points += card.victory_points * SUPPLY_CARD_LIMITS[card_name]
+                if card.get_victory_points(max_vp_player) > 0:
+                    max_victory_points += card.get_victory_points(max_vp_player) * SUPPLY_CARD_LIMITS[card_name]
         return max_victory_points
     
     def start_game(self):

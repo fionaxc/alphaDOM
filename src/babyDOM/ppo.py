@@ -160,7 +160,6 @@ class PPOAgent:
         # Continuing reward
         else:
             return 0
-            # return action.card.victory_points / game_engine.get_maximum_possible_vp() if action.action_type == ActionType.BUY and (action.card.is_victory() or action.card.is_curse()) else 0
 
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], action_masks: List[np.ndarray], next_value: float,

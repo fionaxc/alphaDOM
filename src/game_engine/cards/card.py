@@ -24,7 +24,7 @@ class Card:
         self.name = name
         self.type = type
         self.cost = cost 
-        self.victory_points = victory_points
+        self._victory_points = victory_points
         self.effect = effect
         self.activation_effect = activation_effect
 
@@ -42,6 +42,9 @@ class Card:
 
     def is_treasure(self):
         return self.is_type(CardType.TREASURE)
+
+    def get_victory_points(self, player):
+        return self._victory_points.get_value(player)
 
     def play(self, player, game):
         self.effect.apply(player, game)
