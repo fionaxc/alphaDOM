@@ -1,5 +1,5 @@
 from .card import Card, CardType
-from ..effects import CompositeEffect, DrawCardsEffect, AddMoneyEffect, AddActionsEffect, AddBuysEffect, ConditionalEffect, TrashCardInHandEffect, AddCurseEffect, FirstPlayedEffect
+from ..effects import CompositeEffect, DrawCardsEffect, AddMoneyEffect, AddActionsEffect, AddBuysEffect, ConditionalEffect, TrashCardInHandEffect, AddCurseEffect, FirstPlayedEffect, DrawOpponentsCardsEffect
 
 def has_copper(player, game):
     # Check if the player has a Copper card in hand
@@ -120,6 +120,13 @@ BASIC_KINGDOM_CARDS = {
         cost=5,
         victory_points=0,
         effect=CompositeEffect(effects=[DrawCardsEffect(num_cards=2), AddActionsEffect(num_actions=1)])
+    ),
+    "Council Room": Card(
+        name="Council Room",
+        type=CardType.ACTION,
+        cost=5,
+        victory_points=0,
+        effect=CompositeEffect(effects=[DrawCardsEffect(num_cards=4), AddBuysEffect(num_buys=1), DrawOpponentsCardsEffect(num_cards=1)])
     ),
     "Market": Card(
         name="Market",

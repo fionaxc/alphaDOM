@@ -82,3 +82,11 @@ class FirstPlayedEffect(Effect):
     
     def reset(self):
         self.activated = False
+
+class DrawOpponentsCardsEffect(Effect):
+    def apply(self, player, game):
+        # Draw num_cards from the opponent's deck
+        player_index = next(i for i, p in enumerate(game.players) if p == player)
+        opponent = game.players[1 - player_index]
+        for _ in range(self.num_cards):
+            opponent.draw_card()

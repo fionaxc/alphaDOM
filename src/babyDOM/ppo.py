@@ -51,9 +51,9 @@ class PPOAgent:
                  lr: float = 1e-4,
                  gamma: float = 0.9999,
                  epsilon: float = 0.15,
-                 value_coef: float = 0.5,
+                 value_coef: float = 0.43,
                  entropy_coef: float = 0.05,
-                 gae_lambda: float = 0.95,
+                 gae_lambda: float = 0.75,
                  output_dir: str = "src/output",
                  checkpoint_path: str = None):
         """
@@ -199,28 +199,29 @@ class PPOAgent:
             ratio = torch.exp(new_log_probs - old_log_probs.detach())
             surrogate1 = ratio * advantages
             surrogate2 = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * advantages
-            actor_loss = -torch.min(surrogate1, surrogate2).mean() - self.entropy_coef * entropy.mean()
+            # actor_loss = -torch.min(surrogate1, surrogate2).mean() - self.entropy_coef * entropy.mean()
+            actor_loss = -torch.min(surrogate1, surrogate2).mean()
 
             value_loss = nn.MSELoss()(new_values, returns.detach())
 
-            # loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
+            loss = actor_loss + self.value_coef * value_loss - self.entropy_coef * entropy.mean()
 
             # Separate Loss Implementation ##
-            # Actor Loss Step
-            self.actor_optimizer.zero_grad()
-            actor_loss.backward(retain_graph=True)
-            self.actor_optimizer.step()
-            # Critic Loss Step
-            self.critic_optimizer.zero_grad()
-            value_loss.backward()
-            self.critic_optimizer.step()
-
-            # ## Combined Loss Implementation ##
+            # # Actor Loss Step
             # self.actor_optimizer.zero_grad()
-            # self.critic_optimizer.zero_grad()
-            # loss.backward()
+            # actor_loss.backward(retain_graph=True)
             # self.actor_optimizer.step()
+            # # Critic Loss Step
+            # self.critic_optimizer.zero_grad()
+            # value_loss.backward()
             # self.critic_optimizer.step()
+
+            ## Combined Loss Implementation ##
+            self.actor_optimizer.zero_grad()
+            self.critic_optimizer.zero_grad()
+            loss.backward()
+            self.actor_optimizer.step()
+            self.critic_optimizer.step()
 
             # Log critical information every last gradient step
             if epoch == epochs - 1 and game % (batch_size * 50) == 0:

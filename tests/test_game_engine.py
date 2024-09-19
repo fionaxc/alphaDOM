@@ -28,9 +28,12 @@ class TestGameEngine(unittest.TestCase):
         print("\nInitial Valid Actions:")
         pprint(game.get_valid_actions())  # Pretty-print the valid actions
 
-    def pretty_print_intermediate_game_state_and_valid_actions(self, action, game):
-        print(f"\nGame State after {action}:")
-        pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
+    def pretty_print_intermediate_game_state_and_valid_actions(self, action, game, opponent_state=False):
+        print(f"\n{'Opponent' if opponent_state else 'Game'} State after {action}:")
+        if opponent_state:
+            pprint(self.simplified_observation_state(game.get_other_player().get_player_observation_state()))  # Pretty-print the game state
+        else:
+            pprint(self.simplified_observation_state(game.get_observation_state()))  # Pretty-print the game state
         print(f"\nValid Actions after {action}:")
         pprint(game.get_valid_actions())  # Pretty-print the valid actions
 
@@ -114,6 +117,28 @@ class TestGameEngine(unittest.TestCase):
         # End action second time
         game.get_valid_actions()[0].apply()
         self.pretty_print_intermediate_game_state_and_valid_actions("Ending Action second time", game)
+    
+    def test_council_room_card(self):
+        self.print_title("Council Room Card")
+
+        # Initialize a new game
+        game = Game()
+        current_player = game.current_player()
+
+        # Initialize current player's hand with merchant and silver card objects
+        current_player.hand = [CARD_MAP['Council Room']]
+        current_player.draw_pile = [CARD_MAP['Silver'], CARD_MAP['Copper'], CARD_MAP['Estate'], CARD_MAP['Gold'], CARD_MAP['Duchy']]
+
+        # Print the initial game state and valid actions
+        self.pretty_print_initial_game_state_and_valid_actions(game)
+
+        # Play council room
+        [a for a in game.get_valid_actions() if a.card and a.card.name == 'Council Room'][0].apply()
+        self.pretty_print_intermediate_game_state_and_valid_actions("Playing Council Room", game)
+
+        # End action
+        game.get_valid_actions()[0].apply()
+        self.pretty_print_intermediate_game_state_and_valid_actions("Ending Action", game, opponent_state=True)
 
         
 if __name__ == '__main__':
