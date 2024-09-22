@@ -99,3 +99,6 @@ checkpoints/
 
 # Ignore output directory
 output/
+
+# Helper files
+test_load.py

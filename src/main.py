@@ -5,20 +5,21 @@ from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 from utils import save_params_to_csv
 import torch
+from train_modal import app
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Train a Dominion AI agent using PPO")
-    parser.add_argument("--num_games", type=int, default=1000000, help="Number of games to train")
+    parser.add_argument("--num_games", type=int, default=10000000, help="Number of games to train")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training (number of games)")
     parser.add_argument("--update_epochs", type=int, default=5, help="Number of epochs for each update")
-    parser.add_argument("--hidden_size", type=int, default=256, help="Hidden size of the neural network")
+    parser.add_argument("--hidden_size", type=int, default=128, help="Hidden size of the neural network")
     parser.add_argument("--run_id", type=str, default="default_run", help="Unique identifier for this run")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to a checkpoint file to load model weights from")
     return parser.parse_args()
 
 def __main__():
     args = parse_arguments()
-    args.run_id = "0912_SIMPLE2_run3_games{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_games, args.batch_size, args.update_epochs, args.hidden_size)
+    args.run_id = "0921_SIMPLE_run1_games{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_games, args.batch_size, args.update_epochs, args.hidden_size)
 
     # Initialize the game engine
     game_engine = Game()
@@ -54,4 +55,4 @@ def __main__():
     torch.save(trained_agent, os.path.join(output_dir, "trained_agent.pth"))
 
 if __name__ == "__main__":
-    __main__()
+    app.run()

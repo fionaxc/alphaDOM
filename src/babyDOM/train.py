@@ -300,7 +300,7 @@ def run_all_games_sequentially(game_engine: Game, vectorizer: DominionVectorizer
             # Clear batch buffer after update
             batch_buffer = {key: [[], []] for key in batch_buffer}
 
-        if game % 1000 == 0:
+        if game % 100 == 0:
             save_game_history(output_dir, game + 1, game_history)
 
         # End timing the entire process for the batch
@@ -325,8 +325,10 @@ def ppo_train(
 ) -> PPOAgent:
     obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
     action_dim = vectorizer.action_space_size
-    agent = PPOAgent(obs_dim, action_dim, hidden_size, output_dir=output_dir, checkpoint_path=checkpoint_path)
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    agent = PPOAgent(obs_dim, action_dim, hidden_size, device=device, output_dir=output_dir, checkpoint_path=checkpoint_path)
+    agent.to(device)
+
     # Create a directory for storing output files
     os.makedirs(output_dir, exist_ok=True)
 
@@ -343,7 +345,7 @@ def ppo_train(
     # Log initial critical information
     agent.log_critical_info("Base Agent", 0, torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]), torch.tensor([0.0]))
 
-    # run_all_games_sequentially(game_engine, vectorizer, agent, num_games, batch_size, update_epochs, output_dir)
-    run_all_games_in_parallel(game_engine, vectorizer, agent, num_games, batch_size, update_epochs, output_dir)
+    run_all_games_sequentially(game_engine, vectorizer, agent, num_games, batch_size, update_epochs, output_dir)
+    # run_all_games_in_parallel(game_engine, vectorizer, agent, num_games, batch_size, update_epochs, output_dir)
 
     return agent

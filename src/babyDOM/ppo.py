@@ -48,6 +48,7 @@ class PPOAgent:
     def __init__(self, obs_dim: int,
                  action_dim: int,
                  hidden_size: int,
+                 device: str,
                  lr: float = 1e-4,
                  gamma: float = 0.9999,
                  epsilon: float = 0.15,
@@ -83,10 +84,19 @@ class PPOAgent:
         self.entropy_coef = entropy_coef
         self.gae_lambda = gae_lambda
         self.output_dir = output_dir
-
+        self.device = device
         # Load checkpoint if provided
         if checkpoint_path:
             self.load_checkpoint(checkpoint_path)
+    
+    def to(self, device):
+        """
+        Move the model to the specified device.
+        """
+        self.actor = self.actor.to(device)
+        self.critic = self.critic.to(device)
+        self.device = device
+        return self
     
     def load_checkpoint(self, checkpoint_path: str):
         """
@@ -113,12 +123,12 @@ class PPOAgent:
         """
         Get the action from the agent's policy. Returns the selected action, the log probability of the action (used for updating the policy), and the action mask.
         """
-        obs = torch.FloatTensor(obs)
+        obs = torch.FloatTensor(obs).to(self.device)
         logits = self.actor(obs)
 
         # Get the action mask directly from the vectorizer
         action_mask = vectorizer.get_action_mask(game)
-        action_mask = torch.BoolTensor(action_mask)
+        action_mask = torch.BoolTensor(action_mask).to(self.device)
 
         # Apply mask and create categorical distribution
         masked_logits = logits.masked_fill(~action_mask, -float('inf'))
@@ -133,7 +143,7 @@ class PPOAgent:
         """
         Get the value from the critic.
         """
-        obs = torch.FloatTensor(obs)
+        obs = torch.FloatTensor(obs).to(self.device)
         return self.critic(obs).item()
     
     def calculate_reward(self, game_engine: Game, current_player: int, done: bool, action: Action) -> int:
@@ -164,14 +174,14 @@ class PPOAgent:
     def update(self, player_name: str, observations: List[np.ndarray], actions: List[int], old_log_probs: List[float], 
                rewards: List[float], values: List[float], dones: List[bool], action_masks: List[np.ndarray], next_value: float,
                epochs: int, vectorizer: DominionVectorizer, batch_size: int,game: int = 0):
-        observations = torch.FloatTensor(np.array(observations))
-        actions = torch.LongTensor(actions)
-        old_log_probs = torch.FloatTensor(old_log_probs)
-        rewards = torch.FloatTensor(rewards)
-        values = torch.FloatTensor(values)
-        dones = torch.FloatTensor(dones)
-        next_value = torch.FloatTensor([next_value])
-        action_masks = torch.stack(action_masks)
+        observations = torch.FloatTensor(np.array(observations)).to(self.device)
+        actions = torch.LongTensor(actions).to(self.device)
+        old_log_probs = torch.FloatTensor(old_log_probs).to(self.device)
+        rewards = torch.FloatTensor(rewards).to(self.device)
+        values = torch.FloatTensor(values).to(self.device)
+        dones = torch.FloatTensor(dones).to(self.device)
+        next_value = torch.FloatTensor([next_value]).to(self.device)
+        action_masks = torch.stack(action_masks).to(self.device)
 
         #### GAE return implementation ######
         returns, advantages = self.compute_gae(rewards, values.detach(), next_value.detach(), dones)

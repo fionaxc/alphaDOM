@@ -6,12 +6,12 @@ from .phase import Phase
 
 DEFAULT_SUPPLY = ["Copper", "Silver", "Gold", "Estate", "Duchy", "Province", "Curse"]
 # SIMPLE_SETUP = ["Village", "Smithy", "Moneylender"]
-SIMPLE_SETUP_2 = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market"]
-#SIMPLE_SETUP = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
+# SIMPLE_SETUP_2 = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market"]
+SIMPLE_SETUP = ["Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
 # SIMPLE_CHAPEL_SETUP = ["Chapel", "Village", "Smithy", "Moneylender", "Festival", "Laboratory", "Market", "Witch"]
 
 class Game:
-    def __init__(self, kingdom_cards=SIMPLE_SETUP_2, num_players=2):
+    def __init__(self, kingdom_cards=SIMPLE_SETUP, num_players=2):
         """
         Initialize the game with the given kingdom cards and number of players.
 
