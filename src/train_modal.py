@@ -5,6 +5,7 @@ from game_engine.game import Game
 from vectorization.vectorizer import DominionVectorizer
 import os
 import torch
+from babyDOM.ppo import PPOAgent
 
 def create_image():
     return (
@@ -20,24 +21,34 @@ def train_dominion(num_games, batch_size, update_epochs, hidden_size, run_id, ch
     game_engine = Game()
     vectorizer = DominionVectorizer(game_engine.all_card_names)
     if run_id is None:
-        run_id = "0921_SIMPLE_run1_games{}_batchsize{}_updateepochs{}_hidden{}".format(num_games, batch_size, update_epochs, hidden_size)
+        run_id = "0922_SIMPLE_run1_games{}_batchsize{}_updateepochs{}_hidden{}".format(num_games, batch_size, update_epochs, hidden_size)
 
     # Create output directory within the alphaDom repository
     output_dir = os.path.join("/root/output", run_id)
     os.makedirs(output_dir, exist_ok=True)
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Initialize the agent
+    obs_dim = vectorizer.vectorize_observation(game_engine).shape[0]
+    action_dim = vectorizer.action_space_size
+    agent = PPOAgent(obs_dim, action_dim, hidden_size, device=device, output_dir=output_dir, checkpoint_path=checkpoint_path)
+    agent.to(device)
+
+    # Create a VectorizedDominionEnv
+    env = VectorizedDominionEnv(batch_size, game_engine, vectorizer, device)
+
+    # Train the agent
     trained_agent = ppo_train(
-        game_engine=game_engine,
+        env=env,
+        agent=agent,
         vectorizer=vectorizer,
         run_id=run_id,
         output_dir=output_dir,
         num_games=num_games,
         batch_size=batch_size,
-        update_epochs=update_epochs,
-        hidden_size=hidden_size,
-        checkpoint_path=checkpoint_path
+        update_epochs=update_epochs
     )
-    
 
     # Save the trained agent to the output directory
     torch.save(trained_agent, os.path.join(output_dir, "trained_agent.pth"))

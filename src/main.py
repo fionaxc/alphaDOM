@@ -19,7 +19,7 @@ def parse_arguments():
 
 def __main__():
     args = parse_arguments()
-    args.run_id = "0921_SIMPLE_run1_games{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_games, args.batch_size, args.update_epochs, args.hidden_size)
+    args.run_id = "0922_SIMPLE_run1_games{}_batchsize{}_updateepochs{}_hidden{}".format(args.num_games, args.batch_size, args.update_epochs, args.hidden_size)
 
     # Initialize the game engine
     game_engine = Game()
@@ -40,7 +40,6 @@ def __main__():
         batch_size=args.batch_size,
         update_epochs=args.update_epochs,
         hidden_size=args.hidden_size,
-        checkpoint_path=args.checkpoint_path
     )
 
     print(f"Training completed for run {args.run_id}")
@@ -55,4 +54,4 @@ def __main__():
     torch.save(trained_agent, os.path.join(output_dir, "trained_agent.pth"))
 
 if __name__ == "__main__":
-    app.run()
+    __main__()
